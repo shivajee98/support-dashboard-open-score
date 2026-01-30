@@ -1,6 +1,8 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8001/api';
 
-export async function apiFetch(endpoint: string, options: RequestInit = {}) {
+import { ApiError } from "@/types/auth";
+
+export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     // If running in browser and no token, maybe redirect?
     // But let's keep it simple.
 
@@ -37,9 +39,17 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
                 window.location.href = '/login';
             }
         }
+        throw new Error('Unauthorized');
     }
 
     // Handle empty responses
     const text = await res.text();
-    return text ? JSON.parse(text) : {};
+    const data = text ? JSON.parse(text) : {};
+
+    if (!res.ok) {
+        const errorData = data as ApiError;
+        throw new Error(errorData.error || errorData.message || `API Error: ${res.status}`);
+    }
+
+    return data as T;
 }

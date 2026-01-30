@@ -28,12 +28,7 @@ export default function DashboardPage() {
   }, [filterStatus]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (selectedTicket) {
-      fetchMessages(selectedTicket.id);
-      interval = setInterval(() => fetchMessages(selectedTicket.id), 3000);
-    }
-    return () => clearInterval(interval);
+    // Polling removed in favor of WebSockets
   }, [selectedTicket]);
 
   const fetchTickets = async () => {
@@ -61,6 +56,34 @@ export default function DashboardPage() {
       console.error(error);
     }
   };
+
+  useEffect(() => {
+    if (!selectedTicket) return;
+
+    // Fetch initial
+    fetchMessages(selectedTicket.id);
+
+    // Setup Echo Listener
+    let echoInstance: any;
+    import('@/lib/echo').then(({ createEcho }) => {
+      const echo = createEcho();
+      echoInstance = echo;
+
+      echo.private(`support.ticket.${selectedTicket.id}`)
+        .listen('.MessageSent', (e: any) => {
+          setMessages(prev => {
+            if (prev.find(m => m.id === e.message.id)) return prev;
+            return [...prev, e.message];
+          });
+        });
+    });
+
+    return () => {
+      if (echoInstance) {
+        echoInstance.leave(`support.ticket.${selectedTicket.id}`);
+      }
+    };
+  }, [selectedTicket]);
 
   const handleSendMessage = async (message: string) => {
     if (!selectedTicket) return;
