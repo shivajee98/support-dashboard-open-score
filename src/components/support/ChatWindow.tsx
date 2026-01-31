@@ -21,9 +21,10 @@ interface ChatWindowProps {
     onSendMessage: (message: string, attachment?: File | null) => Promise<void>;
     isLoading?: boolean;
     ticketStatus: string;
+    onViewProfile?: () => void;
 }
 
-export default function ChatWindow({ messages, currentUserId, onSendMessage, isLoading, ticketStatus }: ChatWindowProps) {
+export default function ChatWindow({ messages, currentUserId, onSendMessage, isLoading, ticketStatus, onViewProfile }: ChatWindowProps) {
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -100,9 +101,19 @@ export default function ChatWindow({ messages, currentUserId, onSendMessage, isL
                                         : "bg-white border border-slate-100 text-slate-700 rounded-bl-none"
                                 )}>
                                     {!isMe && (
-                                        <p className="text-[10px] font-bold opacity-50 mb-1 uppercase tracking-wider">
-                                            {msg.is_admin_reply ? 'Customer Support' : msg.user?.name || 'User'}
-                                        </p>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-[10px] font-bold opacity-50 uppercase tracking-wider">
+                                                {msg.is_admin_reply ? 'Customer Support' : msg.user?.name || 'User'}
+                                            </p>
+                                            {!msg.is_admin_reply && onViewProfile && (
+                                                <button
+                                                    onClick={onViewProfile}
+                                                    className="text-[10px] font-bold text-blue-500 hover:underline uppercase tracking-wider"
+                                                >
+                                                    View Profile
+                                                </button>
+                                            )}
+                                        </div>
                                     )}
                                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
                                     <div className={cn(

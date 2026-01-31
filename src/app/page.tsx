@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import TicketList from '@/components/support/TicketList';
 import ChatWindow from '@/components/support/ChatWindow';
 import { apiFetch } from '@/lib/api';
-import { LogOut, Filter, MessageSquare, RefreshCw } from 'lucide-react';
+import { LogOut, Filter, MessageSquare, RefreshCw, Search, User } from 'lucide-react';
 import { cn } from '@/lib/loanUtils';
 import { useRouter } from 'next/navigation';
+import UserSearchModal from '@/components/support/UserSearchModal';
+import UserDetailsModal from '@/components/support/UserDetailsModal';
 
 export default function DashboardPage() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -15,6 +17,12 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('');
+
+  // New State for Modals
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
+  const [viewingUser, setViewingUser] = useState<any>(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -88,7 +96,7 @@ export default function DashboardPage() {
   const handleSendMessage = async (message: string) => {
     if (!selectedTicket) return;
     try {
-      await apiFetch(`/support/tickets/${selectedTicket.id}/message`, {
+      await apiFetch<any>(`/support/tickets/${selectedTicket.id}/message`, {
         method: 'POST',
         body: JSON.stringify({ message })
       });
@@ -101,7 +109,7 @@ export default function DashboardPage() {
   const handleStatusChange = async (status: string) => {
     if (!selectedTicket) return;
     try {
-      await apiFetch(`/support/tickets/${selectedTicket.id}/status`, {
+      await apiFetch<any>(`/support/tickets/${selectedTicket.id}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status })
       });
@@ -118,6 +126,13 @@ export default function DashboardPage() {
     router.push('/login');
   };
 
+  const handleViewProfileFromChat = () => {
+    if (selectedTicket && selectedTicket.user) {
+      setViewingUser(selectedTicket.user);
+      setIsUserDetailsOpen(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* Header */}
@@ -131,12 +146,22 @@ export default function DashboardPage() {
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{user?.name || 'Agent'}</p>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
-        >
-          <LogOut size={20} />
-        </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-xs transition-colors"
+          >
+            <Search size={16} />
+            Search User
+          </button>
+          <button
+            onClick={handleLogout}
+            className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
       </header>
 
       {/* Content */}
@@ -184,7 +209,13 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="font-bold text-slate-900 text-lg">{selectedTicket.subject}</h3>
                   <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                    <span className="font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-600">{selectedTicket.user?.name}</span>
+                    <span
+                      className="font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-600 cursor-pointer hover:bg-slate-200 transition-colors"
+                      onClick={handleViewProfileFromChat}
+                      title="View Profile"
+                    >
+                      {selectedTicket.user?.name}
+                    </span>
                     <span>•</span>
                     <span>Ticket #{selectedTicket.id}</span>
                   </div>
@@ -205,6 +236,7 @@ export default function DashboardPage() {
                   currentUserId={user?.id}
                   onSendMessage={handleSendMessage}
                   ticketStatus={selectedTicket.status}
+                  onViewProfile={handleViewProfileFromChat}
                 />
               </div>
             </>
@@ -216,6 +248,26 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <UserSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onSelectUser={(user) => {
+          setViewingUser(user);
+          setIsSearchOpen(false);
+          setIsUserDetailsOpen(true);
+        }}
+      />
+
+      <UserDetailsModal
+        isOpen={isUserDetailsOpen}
+        user={viewingUser}
+        onClose={() => {
+          setIsUserDetailsOpen(false);
+          setViewingUser(null);
+        }}
+      />
     </div>
   );
 }
