@@ -35,7 +35,7 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       const query = filterStatus ? `?status=${filterStatus}` : '';
-      const res = await apiFetch(`/admin/support/tickets${query}`);
+      const res = await apiFetch<any>(`/admin/support/tickets${query}`);
       if (res && res.data) {
         setTickets(res.data);
       }
@@ -48,7 +48,7 @@ export default function DashboardPage() {
 
   const fetchMessages = async (ticketId: number) => {
     try {
-      const res = await apiFetch(`/support/tickets/${ticketId}`);
+      const res = await apiFetch<any>(`/support/tickets/${ticketId}`);
       if (res && res.messages) {
         setMessages(res.messages);
       }
