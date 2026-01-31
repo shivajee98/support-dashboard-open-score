@@ -7,13 +7,15 @@ import KYCPreviewModal from '@/components/support/KYCPreviewModal';
 interface UserDetailsModalProps {
     isOpen: boolean;
     user: any;
+    currentUserId: number;
     onClose: () => void;
 }
 
-export default function UserDetailsModal({ isOpen, user, onClose }: UserDetailsModalProps) {
-    const [activeTab, setActiveTab] = useState<'loans' | 'payouts'>('loans');
+export default function UserDetailsModal({ isOpen, user, currentUserId, onClose }: UserDetailsModalProps) {
+    const [activeTab, setActiveTab] = useState<'loans' | 'payouts' | 'transactions'>('loans');
     const [loans, setLoans] = useState<any[]>([]);
     const [payouts, setPayouts] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [previewLoan, setPreviewLoan] = useState<any>(null);
@@ -27,15 +29,15 @@ export default function UserDetailsModal({ isOpen, user, onClose }: UserDetailsM
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Parallel fetch
-            const [loansData, payoutsData] = await Promise.all([
+            const [loansData, payoutsData, txData] = await Promise.all([
                 apiFetch<any>('/admin/loans').catch(() => []),
-                apiFetch<any>('/admin/payouts').catch(() => [])
+                apiFetch<any>('/admin/payouts').catch(() => []),
+                apiFetch<any>(`/admin/users/${user.id}/transactions`).catch(() => [])
             ]);
 
-            // Client-side filter for now as per plan
             setLoans(loansData.filter((l: any) => l.user_id === user.id));
             setPayouts(payoutsData.filter((p: any) => p.user_id === user.id));
+            setTransactions(txData);
         } catch (error) {
             console.error("Failed to load user data", error);
         } finally {
@@ -89,18 +91,18 @@ export default function UserDetailsModal({ isOpen, user, onClose }: UserDetailsM
 
                 {/* Tabs */}
                 <div className="flex border-b border-slate-100 shrink-0">
-                    <button
-                        onClick={() => setActiveTab('loans')}
-                        className={cn("flex-1 py-4 font-bold text-sm transition-colors border-b-2", activeTab === 'loans' ? "border-blue-600 text-blue-600 bg-blue-50/50" : "border-transparent text-slate-500 hover:bg-slate-50")}
-                    >
-                        Loans ({loans.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('payouts')}
-                        className={cn("flex-1 py-4 font-bold text-sm transition-colors border-b-2", activeTab === 'payouts' ? "border-blue-600 text-blue-600 bg-blue-50/50" : "border-transparent text-slate-500 hover:bg-slate-50")}
-                    >
-                        Payouts ({payouts.length})
-                    </button>
+                    {['loans', 'payouts', 'transactions'].map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab as any)}
+                            className={cn(
+                                "flex-1 py-4 font-bold text-sm transition-colors border-b-2 capitalize",
+                                activeTab === tab ? "border-blue-600 text-blue-600 bg-blue-50/50" : "border-transparent text-slate-500 hover:bg-slate-50"
+                            )}
+                        >
+                            {tab}
+                        </button>
+                    ))}
                 </div>
 
                 {/* Content */}
@@ -132,6 +134,11 @@ export default function UserDetailsModal({ isOpen, user, onClose }: UserDetailsM
                                                     <span className="text-2xl font-black text-slate-900">₹{parseFloat(loan.amount).toLocaleString('en-IN')}</span>
                                                     <span className="text-xs font-bold text-slate-400">for {loan.tenure}m</span>
                                                 </div>
+                                                {loan.kyc_sent_by && (
+                                                    <p className="text-[10px] bg-slate-100 px-1 py-0.5 rounded inline-block text-slate-500">
+                                                        Sent by Agent #{loan.kyc_sent_by}
+                                                    </p>
+                                                )}
                                             </div>
 
                                             {/* Actions */}
@@ -146,12 +153,18 @@ export default function UserDetailsModal({ isOpen, user, onClose }: UserDetailsM
                                                     </button>
                                                 )}
                                                 {['FORM_SUBMITTED', 'APPROVED', 'DISBURSED', 'REJECTED'].includes(loan.status) && (
-                                                    <button
-                                                        onClick={() => setPreviewLoan(loan)}
-                                                        className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-xs hover:bg-slate-200 transition-all flex items-center gap-2"
-                                                    >
-                                                        <BadgeCheck size={14} /> View Form
-                                                    </button>
+                                                    loan.kyc_sent_by === currentUserId ? (
+                                                        <button
+                                                            onClick={() => setPreviewLoan(loan)}
+                                                            className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-xs hover:bg-slate-200 transition-all flex items-center gap-2"
+                                                        >
+                                                            <BadgeCheck size={14} /> View Form
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-slate-300 border border-slate-100 px-2 py-1 rounded select-none">
+                                                            Restricted
+                                                        </span>
+                                                    )
                                                 )}
                                             </div>
                                         </div>
@@ -177,6 +190,33 @@ export default function UserDetailsModal({ isOpen, user, onClose }: UserDetailsM
                                                 <p className="font-black text-slate-900 text-lg">₹{payout.amount}</p>
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{payout.bank_name} • {payout.account_number}</p>
                                             </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {activeTab === 'transactions' && (
+                                <div className="space-y-3">
+                                    {transactions.length === 0 ? <p className="text-center text-slate-400 py-10 font-bold">No transactions found.</p> : transactions.map(tx => (
+                                        <div key={tx.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn(
+                                                        "text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider",
+                                                        tx.type === 'CREDIT' ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
+                                                    )}>
+                                                        {tx.type}
+                                                    </span>
+                                                    <span className="text-xs font-bold text-slate-400">{new Date(tx.created_at).toLocaleString()}</span>
+                                                </div>
+                                                <p className="font-bold text-slate-900 mt-1">{tx.description}</p>
+                                            </div>
+                                            <p className={cn(
+                                                "font-black text-lg",
+                                                tx.type === 'CREDIT' ? "text-emerald-600" : "text-rose-600"
+                                            )}>
+                                                {tx.type === 'CREDIT' ? '+' : '-'}₹{tx.amount}
+                                            </p>
                                         </div>
                                     ))}
                                 </div>
