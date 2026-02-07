@@ -59,11 +59,13 @@ export default function LoginPage() {
         try {
             const res = await apiFetch<AuthResponse>('/auth/verify', {
                 method: 'POST',
-                body: JSON.stringify({ mobile_number: mobile, otp, role: 'ADMIN' })
+                // Send SUPPORT role as requested. 
+                // Note: This means strictly users with 'SUPPORT' role can login unless backend logic changes to be inclusive.
+                body: JSON.stringify({ mobile_number: mobile, otp, role: 'SUPPORT' })
             });
 
             if (res.access_token) {
-                if (res.user.role !== 'ADMIN') {
+                if (!['ADMIN', 'SUPPORT'].includes(res.user.role)) {
                     toast.error('Access Denied. Support Agents Only.');
                     return;
                 }
