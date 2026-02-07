@@ -285,28 +285,56 @@ export default function DashboardPage() {
 function ChatWindowFetcher({ ticket, currentUserId, onSendMessage, onViewProfile }: any) {
   const [messages, setMessages] = useState<any[]>([]);
 
+  // Ref for polling to access latest state
+  const messagesRef = React.useRef<any[]>(messages);
   useEffect(() => {
-    const fetchMsgs = async () => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  const fetchMessages = async (afterId?: number) => {
+    try {
+      let url = `/support/tickets/${ticket.id}/messages`;
+      if (afterId) {
+        url += `?after_id=${afterId}`;
+      }
+      const res = await apiFetch<any>(url);
+      if (res && Array.isArray(res)) {
+        if (res.length === 0) return; // No new messages
+
+        setMessages(prev => {
+          if (afterId) {
+            // Filter duplicates
+            const newMsgs = res.filter(m => !prev.find(p => p.id === m.id));
+            if (newMsgs.length === 0) return prev;
+            return [...prev, ...newMsgs];
+          }
+          return res;
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    // Initial Fetch
+    const initialFetch = async () => {
       const res = await apiFetch<any>(`/support/tickets/${ticket.id}`);
       if (res && res.messages) setMessages(res.messages);
     };
-    fetchMsgs();
+    initialFetch();
 
-    let echoInstance: any;
-    import('@/lib/echo').then(({ createEcho }) => {
-      const echo = createEcho();
-      echoInstance = echo;
-      echo.private(`support.ticket.${ticket.id}`)
-        .listen('.MessageSent', (e: any) => {
-          setMessages(prev => {
-            if (prev.find(m => m.id === e.message.id)) return prev;
-            return [...prev, e.message];
-          });
-        });
-    });
+    // Setup Polling (3 seconds)
+    const intervalId = setInterval(() => {
+      const currentMsgs = messagesRef.current;
+      const lastMsg = currentMsgs.length > 0 ? currentMsgs[currentMsgs.length - 1] : null;
+      const afterId = lastMsg ? lastMsg.id : 0;
+
+      fetchMessages(afterId);
+    }, 3000);
 
     return () => {
-      if (echoInstance) echoInstance.leave(`support.ticket.${ticket.id}`);
+      clearInterval(intervalId);
     };
   }, [ticket.id]);
 
