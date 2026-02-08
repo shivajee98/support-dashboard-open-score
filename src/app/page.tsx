@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import TicketList from '@/components/support/TicketList';
 import ChatWindow from '@/components/support/ChatWindow';
 import { apiFetch } from '@/lib/api';
-import { LogOut, Filter, MessageSquare, RefreshCw, Search, User, Minus, X, Maximize2 } from 'lucide-react';
+import { LogOut, Filter, MessageSquare, RefreshCw, Search, User, Minus, X, Maximize2, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/loanUtils';
 import { useRouter } from 'next/navigation';
 import UserSearchModal from '@/components/support/UserSearchModal';
@@ -141,6 +142,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link href="/payments" className="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-bold text-xs transition-colors flex items-center gap-2">
+            <CheckCircle2 size={14} /> Verify Payments
+          </Link>
           <button
             onClick={() => setIsSearchOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-xs transition-colors"
