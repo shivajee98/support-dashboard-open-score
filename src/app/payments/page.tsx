@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CheckCircle2, XCircle, Search, Calendar, FileText, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/loanUtils';
+import { apiFetch } from '@/lib/api';
 
 interface Repayment {
     id: number;
@@ -32,19 +33,11 @@ export default function PaymentsPage() {
 
     const fetchPayments = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/repayments/pending`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setRepayments(data.data || []);
-            } else {
-                toast.error("Failed to fetch payments");
-            }
+            const data = await apiFetch<{ data: Repayment[] }>('/admin/repayments/pending');
+            setRepayments(data.data || []);
         } catch (e) {
             console.error(e);
-            toast.error("Error fetching payments");
+            toast.error("Failed to fetch payments");
         } finally {
             setLoading(false);
         }
@@ -59,29 +52,19 @@ export default function PaymentsPage() {
 
         setProcessingId(id);
         try {
-            const token = localStorage.getItem('token');
             // For reject we might need a reason, but for MVP we skip or hardcode
             const body = action === 'reject' ? JSON.stringify({ reason: 'Verification failed by agent' }) : null;
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/repayments/${id}/${action}`, {
+            await apiFetch(`/admin/repayments/${id}/${action}`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body
             });
 
-            if (res.ok) {
-                toast.success(`Payment ${action}d successfully`);
-                setRepayments(prev => prev.filter(r => r.id !== id));
-                setPreviewImage(null);
-            } else {
-                const d = await res.json();
-                toast.error(d.error || `Failed to ${action}`);
-            }
-        } catch (e) {
-            toast.error(`Error processing request`);
+            toast.success(`Payment ${action}d successfully`);
+            setRepayments(prev => prev.filter(r => r.id !== id));
+            setPreviewImage(null);
+        } catch (e: any) {
+            toast.error(e.message || `Failed to ${action}`);
         } finally {
             setProcessingId(null);
         }
