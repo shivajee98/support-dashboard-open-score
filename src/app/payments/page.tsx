@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CheckCircle2, XCircle, Search, Calendar, FileText, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/loanUtils';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, API_BASE_URL } from '@/lib/api';
 
 interface Repayment {
     id: number;
@@ -74,12 +74,10 @@ export default function PaymentsPage() {
     const getImageUrl = (path: string | null) => {
         if (!path) return '';
         if (path.startsWith('http')) return path;
-        // Assuming backend serves storage/ via direct link or we need full URL
-        // We configured 'APP_URL' in backend. usually 'storage/app/public' -> 'storage' symlink.
-        // The backend stores relative path 'repayments/xyz.jpg'.
-        // We need 'BACKEND_URL/storage/repayments/xyz.jpg'. 
-        // Or if we use `Storage::url()` it returns `/storage/...`.
-        return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/storage/${path}`;
+
+        // Use API_BASE_URL and remove trailing /api
+        const baseUrl = API_BASE_URL.replace(/\/api$/, '');
+        return `${baseUrl}/storage/${path}`;
     };
 
     return (
