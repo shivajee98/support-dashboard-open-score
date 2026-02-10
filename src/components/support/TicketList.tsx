@@ -6,6 +6,7 @@ import { cn } from '@/lib/loanUtils';
 interface Ticket {
     id: number;
     subject: string;
+    issue_type?: string;
     status: 'open' | 'in_progress' | 'closed';
     priority: 'low' | 'medium' | 'high';
     created_at: string;
@@ -37,6 +38,15 @@ export default function TicketList({ tickets, onSelectTicket, selectedTicketId }
         }
     };
 
+    const getCategoryLabel = (type?: string) => {
+        switch (type) {
+            case 'cashback_not_received': return 'Cashback Issue';
+            case 'unable_to_transfer': return 'Transfer Issue';
+            case 'general': return 'General';
+            default: return 'Uncategorized';
+        }
+    };
+
     if (tickets.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -63,12 +73,19 @@ export default function TicketList({ tickets, onSelectTicket, selectedTicketId }
                     )}
                 >
                     <div className="flex justify-between items-start mb-2">
-                        <div className={cn(
-                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
-                            getStatusColor(ticket.status)
-                        )}>
-                            {getStatusIcon(ticket.status)}
-                            {ticket.status.replace('_', ' ')}
+                        <div className="flex gap-2">
+                            <div className={cn(
+                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                getStatusColor(ticket.status)
+                            )}>
+                                {getStatusIcon(ticket.status)}
+                                {ticket.status.replace('_', ' ')}
+                            </div>
+                            {ticket.issue_type && (
+                                <div className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-500">
+                                    {getCategoryLabel(ticket.issue_type)}
+                                </div>
+                            )}
                         </div>
                         <span className="text-[10px] font-bold text-slate-400">
                             {format(new Date(ticket.created_at), 'MMM d, h:mm a')}
