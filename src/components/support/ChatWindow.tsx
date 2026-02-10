@@ -1,7 +1,16 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Send, Paperclip, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Send, Paperclip, X, Image as ImageIcon, Loader2, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/loanUtils';
 import { format } from 'date-fns';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.msmeloan.sbs/api';
+
+const getStorageUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    const base = API_BASE_URL.replace('/api', '');
+    return `${base}/storage/${path}`;
+};
 
 interface Message {
     id: number;
@@ -116,6 +125,20 @@ export default function ChatWindow({ messages, currentUserId, onSendMessage, isL
                                         </div>
                                     )}
                                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+
+                                    {msg.attachment_url && (
+                                        <div className="mt-3 rounded-xl overflow-hidden border border-white/20 shadow-inner group relative">
+                                            <img
+                                                src={getStorageUrl(msg.attachment_url!)}
+                                                alt="Attachment"
+                                                className="w-full max-h-60 object-cover cursor-pointer hover:scale-105 transition-transform duration-500"
+                                                onClick={() => window.open(getStorageUrl(msg.attachment_url!), '_blank')}
+                                            />
+                                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                <ExternalLink size={20} className="text-white drop-shadow-lg" />
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className={cn(
                                         "text-[10px] font-bold mt-2 text-right opacity-60",
                                         isMe ? "text-blue-100" : "text-slate-400"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Phone, Wallet, Clock, ChevronRight, BadgeCheck, Ban, Calculator, IndianRupee, Send, Gift } from 'lucide-react';
+import { X, User, Phone, Wallet, Clock, ChevronRight, BadgeCheck, Ban, Calculator, IndianRupee, Send, Gift, PlayCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { cn } from '@/lib/loanUtils';
 import KYCPreviewModal from '@/components/support/KYCPreviewModal';
@@ -145,6 +145,16 @@ export default function UserDetailsModal({ isOpen, user, currentUserId, onClose 
 
                                             {/* Actions */}
                                             <div className="flex gap-2 flex-wrap justify-end">
+                                                {loan.status === 'PENDING' && (
+                                                    <button
+                                                        disabled={!!actionLoading}
+                                                        onClick={() => handleLoanAction(loan.id, 'proceed', 'Loan Proceeded')}
+                                                        className="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-lg font-bold text-xs hover:bg-indigo-100 transition-all flex items-center gap-2"
+                                                    >
+                                                        <PlayCircle size={14} /> Proceed
+                                                    </button>
+                                                )}
+
                                                 {['PROCEEDED', 'KYC_SENT', 'FORM_SUBMITTED'].includes(loan.status) && (
                                                     <button
                                                         disabled={!!actionLoading}
@@ -154,19 +164,36 @@ export default function UserDetailsModal({ isOpen, user, currentUserId, onClose 
                                                         <Send size={14} /> {loan.status === 'KYC_SENT' ? 'Resend Link' : 'Send Link'}
                                                     </button>
                                                 )}
+
                                                 {['FORM_SUBMITTED', 'APPROVED', 'DISBURSED', 'REJECTED'].includes(loan.status) && (
-                                                    loan.kyc_sent_by === currentUserId ? (
-                                                        <button
-                                                            onClick={() => setPreviewLoan(loan)}
-                                                            className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-xs hover:bg-slate-200 transition-all flex items-center gap-2"
-                                                        >
-                                                            <BadgeCheck size={14} /> View Form
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-[10px] font-bold text-slate-300 border border-slate-100 px-2 py-1 rounded select-none">
-                                                            Restricted
-                                                        </span>
-                                                    )
+                                                    <button
+                                                        onClick={() => setPreviewLoan(loan)}
+                                                        className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-xs hover:bg-slate-200 transition-all flex items-center gap-2"
+                                                    >
+                                                        <BadgeCheck size={14} /> View Form
+                                                    </button>
+                                                )}
+
+                                                {loan.status === 'FORM_SUBMITTED' && (
+                                                    <button
+                                                        disabled={!!actionLoading}
+                                                        onClick={() => handleLoanAction(loan.id, 'approve', 'Loan Approved')}
+                                                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-xs hover:bg-emerald-700 transition-all flex items-center gap-2"
+                                                    >
+                                                        <BadgeCheck size={14} /> Approve
+                                                    </button>
+                                                )}
+
+                                                {loan.status === 'APPROVED' && (
+                                                    <button
+                                                        disabled={!!actionLoading}
+                                                        onClick={() => {
+                                                            if (confirm('Disburse funds?')) handleLoanAction(loan.id, 'release', 'Loan Disbursed');
+                                                        }}
+                                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-xs hover:bg-blue-700 transition-all flex items-center gap-2"
+                                                    >
+                                                        <IndianRupee size={14} /> Disburse
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
