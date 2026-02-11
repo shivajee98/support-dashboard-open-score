@@ -841,7 +841,7 @@ export default function Dashboard() {
                     </div>
 
                     <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 custom-scrollbar bg-slate-50/50">
-                      {selectedTicket.messages.map((m: any, idx: number) => (
+                      {selectedTicket.messages?.map((m: any, idx: number) => (
                         <div key={idx} className={`flex ${m.is_admin_reply ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[85%] lg:max-w-[70%] p-4 rounded-2xl shadow-sm ${m.is_admin_reply ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none'}`}>
                             {m.attachment_url && (
@@ -1013,8 +1013,8 @@ export default function Dashboard() {
                               disabled={isActionLoading}
                               onClick={() => {
                                 // Find pendings
-                                const loans = loanDetails?.loans || [];
-                                const repayments = loans.flatMap((l: any) => l.repayments || []).filter((r: any) => r.status === 'PENDING' || r.status === 'OVERDUE');
+                                const loans = loanDetails?.loan ? [loanDetails.loan] : [];
+                                const repayments = (loanDetails?.repayments || []).filter((r: any) => r.status === 'PENDING' || r.status === 'OVERDUE');
 
                                 if (repayments.length === 0) {
                                   toast.error('No pending repayments found for this user');
@@ -1386,7 +1386,7 @@ export default function Dashboard() {
                 <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
                   <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Calculations</p>
                   <div className="space-y-1">
-                    {selectedLoanDetail.loan.calculations && typeof selectedLoanDetail.loan.calculations === 'object' && Object.entries(selectedLoanDetail.loan.calculations).map(([key, val]: [string, any]) => (
+                    {selectedLoanDetail.loan?.calculations && typeof selectedLoanDetail.loan.calculations === 'object' && Object.entries(selectedLoanDetail.loan.calculations).map(([key, val]: [string, any]) => (
                       typeof val !== 'object' && (
                         <div key={key} className="flex justify-between text-[10px] font-bold">
                           <span className="text-emerald-500 uppercase">{key.replace(/_/g, ' ')}:</span>
@@ -1398,20 +1398,24 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {selectedLoanDetail.form_data && Object.keys(selectedLoanDetail.form_data).length > 0 && (
+              {selectedLoanDetail.loan?.form_data && Object.keys(selectedLoanDetail.loan.form_data).length > 0 && (
                 <div className="space-y-4">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">KYC Documents & Info</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedLoanDetail.form_data && typeof selectedLoanDetail.form_data === 'object' && Object.entries(selectedLoanDetail.form_data).map(([key, val]: [string, any]) => {
-                      const isImage = val && typeof val === 'object' && val.url;
-                      const isUrl = typeof val === 'string' && val.startsWith('http');
+                    {selectedLoanDetail.loan?.form_data && typeof selectedLoanDetail.loan.form_data === 'object' && Object.entries(selectedLoanDetail.loan.form_data).map(([key, val]: [string, any]) => {
+                      const isImgObj = val && typeof val === 'object' && val.url;
+                      const isImgStr = typeof val === 'string' && (val.match(/\.(jpg|jpeg|png|webp|gif|svg|avif)$/i) || val.includes('storage/'));
+                      const isImage = isImgObj || isImgStr;
+                      const imageUrl = isImgObj ? val.url : val;
+
+                      const isUrl = typeof val === 'string' && val.startsWith('http') && !isImage;
 
                       if (isImage) {
                         return (
                           <div key={key} className="col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-2xl border border-slate-100">
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{key.replace(/_/g, ' ')}</p>
-                            <a href={val.url} target="_blank" rel="noopener noreferrer" className="block relative group aspect-video overflow-hidden rounded-xl border border-slate-200 shadow-sm">
-                              <img src={val.url} alt={key} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                            <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="block relative group aspect-video overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+                              <img src={imageUrl} alt={key} className="w-full h-full object-contain transition-transform group-hover:scale-105" />
                               <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors flex items-center justify-center">
                                 <ExternalLink size={20} className="text-white opacity-0 group-hover:opacity-100 drop-shadow-md" />
                               </div>
