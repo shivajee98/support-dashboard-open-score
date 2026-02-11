@@ -89,6 +89,11 @@ export default function Dashboard() {
     fetchTickets();
     if (isTrans) fetchPendingRepayments();
     if (isLoan) fetchPendingLoans();
+    if (isLoan) fetchPendingLoans();
+
+    // Fetch fresh user details to ensure category is up to date
+    fetchCurrentUser();
+
     setIsLoading(false);
 
     const interval = setInterval(() => {
@@ -115,6 +120,27 @@ export default function Dashboard() {
       setTickets(data.data || []);
     } catch (error) {
       toast.error('Failed to update tickets');
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    try {
+      const user: any = await apiFetch('/auth/me');
+      if (user) {
+        // Update local storage and state
+        if (user.support_category) {
+          localStorage.setItem('support_user_category_name', user.support_category.name);
+          localStorage.setItem('support_user_category_id', user.support_category.id);
+        }
+
+        setCurrentUser((prev: any) => ({
+          ...prev,
+          categoryName: user.support_category?.name || prev?.categoryName,
+          role: user.role
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch current user', error);
     }
   };
 
@@ -1360,7 +1386,7 @@ export default function Dashboard() {
                 <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
                   <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Calculations</p>
                   <div className="space-y-1">
-                    {Object.entries(selectedLoanDetail.loan.calculations).map(([key, val]: [string, any]) => (
+                    {selectedLoanDetail.loan.calculations && typeof selectedLoanDetail.loan.calculations === 'object' && Object.entries(selectedLoanDetail.loan.calculations).map(([key, val]: [string, any]) => (
                       typeof val !== 'object' && (
                         <div key={key} className="flex justify-between text-[10px] font-bold">
                           <span className="text-emerald-500 uppercase">{key.replace(/_/g, ' ')}:</span>
@@ -1376,7 +1402,7 @@ export default function Dashboard() {
                 <div className="space-y-4">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">KYC Documents & Info</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(selectedLoanDetail.form_data).map(([key, val]: [string, any]) => {
+                    {selectedLoanDetail.form_data && typeof selectedLoanDetail.form_data === 'object' && Object.entries(selectedLoanDetail.form_data).map(([key, val]: [string, any]) => {
                       const isImage = val && typeof val === 'object' && val.url;
                       const isUrl = typeof val === 'string' && val.startsWith('http');
 
