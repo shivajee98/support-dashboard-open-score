@@ -27,8 +27,10 @@ import {
   Check,
   Briefcase,
   PlayCircle,
-  X
+  X,
+  Phone
 } from 'lucide-react';
+import CallInterface from '@/components/CallInterface';
 import { Toaster, toast } from 'sonner';
 import { apiFetch, API_BASE_URL } from '@/lib/api';
 import { cn } from '@/lib/loanUtils';
@@ -68,6 +70,9 @@ export default function Dashboard() {
   const [pendingLoans, setPendingLoans] = useState<any[]>([]);
   const [selectedLoanDetail, setSelectedLoanDetail] = useState<any>(null);
   const [showLoanDetailModal, setShowLoanDetailModal] = useState(false);
+
+  // Call state
+  const [activeCall, setActiveCall] = useState<{ userId: number; name: string } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -526,6 +531,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-white font-sans overflow-hidden text-slate-900 border-t border-slate-100">
       <Toaster position="top-center" richColors />
+      <Toaster position="top-center" richColors />
 
       {/* Sidebar Navigation */}
       <aside className="w-20 lg:w-64 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
@@ -797,7 +803,19 @@ export default function Dashboard() {
                             </div>
                             <div className="p-5 bg-white border border-slate-100 rounded-[2rem]">
                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Status</p>
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-black ${userData.user.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{userData.user.status}</span>
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${userData.user.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                  {userData.user.status}
+                                </span>
+                                {/* Call Button */}
+                                <button
+                                  onClick={() => setActiveCall({ userId: userData.user.id, name: userData.user.name })}
+                                  className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                                  title="Call Customer"
+                                >
+                                  <Phone size={14} />
+                                </button>
+                              </div>
                             </div>
                           </div>
 
@@ -1490,6 +1508,16 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+      {/* Call Interface Modal */}
+      {activeCall && (
+        <CallInterface
+          partnerId={activeCall.userId}
+          partnerName={activeCall.name}
+          authToken={localStorage.getItem('support_token') || ''}
+          agentId={JSON.parse(localStorage.getItem('support_user') || '{}').id}
+          onClose={() => setActiveCall(null)}
+        />
       )}
     </div>
   );
