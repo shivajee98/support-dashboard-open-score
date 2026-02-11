@@ -355,6 +355,24 @@ export default function Dashboard() {
     }
   };
 
+  const handleRejectLoan = async (loanId: number, reason: string) => {
+    setIsActionLoading(true);
+    try {
+      await apiFetch(`/admin/loans/${loanId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
+      });
+      toast.success('Loan rejected successfully');
+      if (selectedTicket) fetchUserLoans(selectedTicket.user.id);
+      fetchPendingLoans();
+    } catch (error: any) {
+      toast.error(error.message || 'Rejection failed');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleProcessTicketAction = async (ticketId: number, action: string, amount: number, targetId?: number) => {
     setIsActionLoading(true);
     try {
@@ -451,6 +469,9 @@ export default function Dashboard() {
       await apiFetch(`/admin/repayments/${repaymentId}/approve`, { method: 'POST' });
       toast.success('EMI processed successfully');
       setShowRepaymentModal(false);
+
+      // Optimistic update
+      setPendingRepayments(prev => prev.filter(r => r.id !== repaymentId));
       fetchPendingRepayments();
 
       // Refresh current user view if applicable
@@ -979,6 +1000,7 @@ export default function Dashboard() {
                           handleViewLoanDetails={handleViewLoanDetails}
                           handleApproveLoan={handleApproveLoan}
                           handleLoanAction={handleLoanAction}
+                          handleRejectLoan={handleRejectLoan}
                         />
                       </div>
                     </div>

@@ -9,6 +9,7 @@ interface LoanActionsProps {
     handleViewLoanDetails: (id: number) => void;
     handleApproveLoan: (id: number) => void;
     handleLoanAction: (id: number, action: string, message: string) => void;
+    handleRejectLoan: (id: number, reason: string) => void;
 }
 
 export default function LoanActions({
@@ -19,7 +20,8 @@ export default function LoanActions({
     setViewingUser,
     handleViewLoanDetails,
     handleApproveLoan,
-    handleLoanAction
+    handleLoanAction,
+    handleRejectLoan
 }: LoanActionsProps) {
     if (!loanDetails) {
         return (
@@ -36,7 +38,9 @@ export default function LoanActions({
                 <div className="flex justify-between items-start mb-2">
                     <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">ID #{loanDetails.loan.id}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${loanDetails.loan.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
-                        loanDetails.loan.status === 'KYC_SENT' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                        loanDetails.loan.status === 'KYC_SENT' ? 'bg-blue-100 text-blue-700' :
+                            loanDetails.loan.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' :
+                                'bg-slate-100 text-slate-500'
                         }`}>
                         {loanDetails.loan.status}
                     </span>
@@ -109,6 +113,22 @@ export default function LoanActions({
                         className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black hover:bg-blue-700 transition-all disabled:opacity-50 shadow-lg shadow-blue-600/20 active:scale-95"
                     >
                         <IndianRupee size={14} /> {isActionLoading ? 'Processing...' : 'Disburse Loan'}
+                    </button>
+                )}
+
+                {/* Action 5: Reject Loan */}
+                {!['DISBURSED', 'CLOSED', 'REJECTED', 'CANCELLED'].includes(loanDetails.loan.status) && (
+                    <button
+                        onClick={() => {
+                            const reason = prompt('Enter rejection reason:');
+                            if (reason) {
+                                handleRejectLoan(loanDetails.loan.id, reason);
+                            }
+                        }}
+                        disabled={isActionLoading}
+                        className="w-full flex items-center justify-center gap-2 py-3 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black hover:bg-rose-100 transition-all disabled:opacity-50 mt-2"
+                    >
+                        Reject Application
                     </button>
                 )}
             </div>
