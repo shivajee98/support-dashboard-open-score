@@ -74,6 +74,7 @@ export default function Dashboard() {
   useEffect(() => {
     const name = localStorage.getItem('support_user_name');
     const role = localStorage.getItem('support_user_role');
+    const categoryName = localStorage.getItem('support_user_category_name');
     const token = localStorage.getItem('token');
 
     if (!token || !name) {
@@ -81,24 +82,19 @@ export default function Dashboard() {
       return;
     }
 
-    setCurrentUser({ name, role });
+    setCurrentUser({ name, role, categoryName });
+    const isTrans = role === 'ADMIN' || (categoryName && (categoryName.toLowerCase().includes('transfer') || categoryName.toLowerCase().includes('emi')));
+    const isLoan = role === 'ADMIN' || (categoryName && (categoryName.toLowerCase().includes('loan') || categoryName.toLowerCase().includes('kyc')));
+
     fetchTickets();
-    if (role && (role.toLowerCase().includes('transfer') || role.toLowerCase().includes('emi'))) {
-      fetchPendingRepayments();
-    }
-    if (role && (role.toLowerCase().includes('loan') || role.toLowerCase().includes('kyc'))) {
-      fetchPendingLoans();
-    }
+    if (isTrans) fetchPendingRepayments();
+    if (isLoan) fetchPendingLoans();
     setIsLoading(false);
 
     const interval = setInterval(() => {
       fetchTickets();
-      if (role && (role.toLowerCase().includes('transfer') || role.toLowerCase().includes('emi'))) {
-        fetchPendingRepayments();
-      }
-      if (role && (role.toLowerCase().includes('loan') || role.toLowerCase().includes('kyc'))) {
-        fetchPendingLoans();
-      }
+      if (isTrans) fetchPendingRepayments();
+      if (isLoan) fetchPendingLoans();
     }, 60000);
     return () => clearInterval(interval);
   }, [router]);
@@ -327,6 +323,24 @@ export default function Dashboard() {
     }
   };
 
+  const handleProcessTicketAction = async (ticketId: number, action: string, amount: number, targetId?: number) => {
+    setIsActionLoading(true);
+    try {
+      const res: any = await apiFetch(`/admin/support/tickets/${ticketId}/process-action`, {
+        method: 'POST',
+        body: JSON.stringify({ action, amount, target_id: targetId })
+      });
+
+      const fullTicket: any = await apiFetch(`/support/tickets/${ticketId}`);
+      setSelectedTicket(fullTicket);
+      toast.success(res.message);
+    } catch (error) {
+      toast.error('Failed to process action');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleApproveTicketPayment = async (ticketId: number) => {
     setIsActionLoading(true);
     try {
@@ -468,11 +482,13 @@ export default function Dashboard() {
 
   if (isLoading) return <div className="h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-blue-600" /></div>;
 
-  const role = currentUser?.role?.toLowerCase() || '';
-  const isCashbackRole = role.includes('cashback') || role.includes('admin') || role.includes('support') || role.includes('agent');
-  const isTransferRole = role.includes('transfer') || role.includes('emi') || role.includes('admin') || role.includes('support') || role.includes('agent');
-  const isLoanKycRole = role.includes('loan') || role.includes('kyc') || role.includes('admin') || role.includes('support') || role.includes('agent');
-  const isAdmin = role.includes('admin') || role === 'support';
+  const role = currentUser?.role || '';
+  const categoryName = currentUser?.categoryName || '';
+
+  const isCashbackRole = role === 'ADMIN' || categoryName.toLowerCase().includes('cashback') || role === 'SUPPORT';
+  const isTransferRole = role === 'ADMIN' || categoryName.toLowerCase().includes('transfer') || categoryName.toLowerCase().includes('emi') || role === 'SUPPORT';
+  const isLoanKycRole = role === 'ADMIN' || categoryName.toLowerCase().includes('loan') || categoryName.toLowerCase().includes('kyc') || role === 'SUPPORT';
+  const isAdmin = role === 'ADMIN' || role === 'SUPPORT';
 
   const getStorageUrl = (path: string) => {
     if (!path) return '';
@@ -551,7 +567,9 @@ export default function Dashboard() {
           <div className="hidden lg:block bg-white/50 p-3 rounded-2xl mb-4 border border-slate-200/50">
             <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Signed In As</p>
             <p className="text-xs font-black truncate">{currentUser?.name}</p>
-            <p className="text-[9px] font-bold text-slate-500 bg-slate-100 inline-block px-2 py-0.5 rounded-full mt-1 uppercase tracking-tight">{currentUser?.role}</p>
+            <p className="text-[9px] font-bold text-slate-500 bg-slate-100 inline-block px-2 py-0.5 rounded-full mt-1 uppercase tracking-tight">
+              {isAdmin ? 'System Admin' : (categoryName || 'Support Agent')}
+            </p>
           </div>
           <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-all font-black">
             <LogOut size={20} />
@@ -921,8 +939,102 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  {/* Payment Verification Section */}
-                  {selectedTicket?.payment_status && (
+                  {/* Unable to Transfer & Approved Payment Wallet Special Section */}
+                  {(selectedTicket?.issue_type === 'unable-to-transfer-approved-my-emi-payment-wallet' || (selectedTicket as any).category?.slug === 'unable-to-transfer-approved-my-emi-payment-wallet') && (
+                    <div className="animate-in slide-in-from-bottom duration-300">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <ShieldAlert size={12} className="text-blue-600" /> Payment & Wallet Resolution
+                      </h3>
+                      <div className="bg-white rounded-[2rem] border border-slate-200 p-5 space-y-4 shadow-sm">
+
+                        {/* Status Indicator */}
+                        {selectedTicket.payment_status && (
+                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Status</span>
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[8px] font-black uppercase",
+                                selectedTicket.payment_status === 'ADMIN_APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                                  selectedTicket.payment_status === 'AGENT_APPROVED' ? 'bg-blue-100 text-blue-700' :
+                                    selectedTicket.payment_status === 'REJECTED' ? 'bg-rose-100 text-rose-700' :
+                                      'bg-amber-100 text-amber-700'
+                              )}>
+                                {selectedTicket.payment_status.replace('_', ' ')}
+                              </span>
+                            </div>
+                            {(selectedTicket as any).sub_action && (
+                              <p className="text-xs font-black mt-2 uppercase tracking-tight text-blue-600">
+                                Intended: {(selectedTicket as any).sub_action.replace('_', ' ')} (₹{selectedTicket.payment_amount})
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {(!selectedTicket.payment_status || selectedTicket.payment_status === 'PENDING_VERIFICATION') && (
+                          <div className="space-y-2">
+                            <button
+                              disabled={isActionLoading}
+                              onClick={() => {
+                                const amount = prompt('Enter Wallet Recharge Amount:', selectedTicket.payment_amount?.toString() || '0');
+                                if (amount) handleProcessTicketAction(selectedTicket.id, 'recharge', Number(amount));
+                              }}
+                              className="w-full flex items-center gap-3 p-3 bg-blue-50 text-blue-700 rounded-xl text-[10px] font-black hover:bg-blue-100 transition-all border border-blue-100"
+                            >
+                              <RefreshCcw size={14} /> 1. Wallet Recharge
+                            </button>
+
+                            <button
+                              disabled={isActionLoading}
+                              onClick={() => {
+                                // Find pendings
+                                const loans = loanDetails?.loans || [];
+                                const repayments = loans.flatMap((l: any) => l.repayments || []).filter((r: any) => r.status === 'PENDING' || r.status === 'OVERDUE');
+
+                                if (repayments.length === 0) {
+                                  toast.error('No pending repayments found for this user');
+                                  return;
+                                }
+
+                                const msg = repayments.map((r: any, i: number) => `${i + 1}. ID: ${r.id} | Amount: ₹${r.amount} | Due: ${r.due_date}`).join('\n');
+                                const choice = prompt(`Select Repayment to pay (Enter ID):\n\n${msg}`);
+                                if (choice) {
+                                  const amount = prompt('Confirm/Enter Paid Amount:', selectedTicket.payment_amount?.toString() || '0');
+                                  handleProcessTicketAction(selectedTicket.id, 'emi', Number(amount), Number(choice));
+                                }
+                              }}
+                              className="w-full flex items-center gap-3 p-3 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black hover:bg-emerald-100 transition-all border border-emerald-100"
+                            >
+                              <BadgeCheck size={14} /> 2. Loan EMI Payment
+                            </button>
+
+                            <button
+                              disabled={isActionLoading}
+                              onClick={() => {
+                                const amount = prompt('Enter Platform Fee Amount:', selectedTicket.payment_amount?.toString() || '0');
+                                if (amount) handleProcessTicketAction(selectedTicket.id, 'platform_fee', Number(amount));
+                              }}
+                              className="w-full flex items-center gap-3 p-3 bg-slate-900 text-white rounded-xl text-[10px] font-black hover:bg-slate-800 transition-all shadow-md active:scale-95"
+                            >
+                              <ShieldAlert size={14} /> 3. Platform Fee
+                            </button>
+                          </div>
+                        )}
+
+                        {selectedTicket.payment_status === 'AGENT_APPROVED' && isAdmin && (
+                          <button
+                            disabled={isActionLoading}
+                            onClick={() => handleProcessTicketAction(selectedTicket.id, (selectedTicket as any).sub_action || '', Number(selectedTicket.payment_amount || 0), (selectedTicket as any).target_id ? Number((selectedTicket as any).target_id) : undefined)}
+                            className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-600 text-white rounded-2xl text-[11px] font-black hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-600/30 animate-bounce"
+                          >
+                            <CheckCircle2 size={16} /> Final Admin Success
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Payment Verification Section (Standard) */}
+                  {selectedTicket?.payment_status && selectedTicket.issue_type !== 'unable-to-transfer-approved-my-emi-payment-wallet' && (
                     <div className="animate-in slide-in-from-bottom duration-300">
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <IndianRupee size={12} /> Payment Verification

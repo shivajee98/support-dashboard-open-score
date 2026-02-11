@@ -71,7 +71,8 @@ export default function LoginPage() {
             if (res.ok) {
                 localStorage.setItem('token', data.access_token);
                 localStorage.setItem('support_user_mobile', mobile);
-                localStorage.setItem('support_user_role', data.user.support_category?.name || 'Agent');
+                localStorage.setItem('support_user_role', data.user.role);
+                localStorage.setItem('support_user_category_name', data.user.support_category?.name || 'Agent');
                 localStorage.setItem('support_user_name', data.user.name);
                 localStorage.setItem('support_user_category_id', data.user.support_category_id);
 
