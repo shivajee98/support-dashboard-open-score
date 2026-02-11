@@ -488,8 +488,8 @@ export default function Dashboard() {
       {/* Sidebar Navigation */}
       <aside className="w-20 lg:w-64 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
-            <LayoutDashboard size={20} />
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-blue-600/20">
+            <img src="/support/logo.svg" alt="OpenScore" className="w-full h-full" />
           </div>
           <span className="hidden lg:block text-xl font-black text-slate-900 tracking-tight">OpenScore</span>
         </div>
