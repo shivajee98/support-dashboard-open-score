@@ -38,6 +38,30 @@ import { cn } from '@/lib/loanUtils';
 import { Ticket } from '@/types';
 import LoanActions from '@/components/dashboard/LoanActions';
 
+// Utility to auto-link URLs in text
+const renderMessageWithLinks = (text: string) => {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline font-bold break-all hover:opacity-80 transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -292,7 +316,7 @@ export default function Dashboard() {
         method: 'POST',
         body: JSON.stringify({ message: `I have sent the KYC link to your profile. Please complete it so we can proceed with your loan. Link: ${res.kyc_link}` })
       });
-      selectTicket(selectedTicket!); // Refresh chat
+      selectTicket(selectedTicket!); // Refresh chat and loan details
     } catch (error) {
       toast.error('Failed to send KYC link');
     } finally {
@@ -900,7 +924,9 @@ export default function Dashboard() {
                                 />
                               </div>
                             )}
-                            <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{m.message}</p>
+                            <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">
+                              {renderMessageWithLinks(m.message)}
+                            </p>
                             <p className={`text-[9px] mt-2 font-bold opacity-50 ${m.is_admin_reply ? 'text-blue-100' : 'text-slate-400'}`}>
                               {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
