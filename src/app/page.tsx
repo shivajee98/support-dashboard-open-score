@@ -140,6 +140,7 @@ export default function Dashboard() {
 
         setCurrentUser((prev: any) => ({
           ...prev,
+          id: user.id,
           categoryName: user.support_category?.name || prev?.categoryName,
           role: user.role
         }));
@@ -1514,8 +1515,8 @@ export default function Dashboard() {
         <CallInterface
           partnerId={activeCall.userId}
           partnerName={activeCall.name}
-          authToken={localStorage.getItem('support_token') || ''}
-          agentId={JSON.parse(localStorage.getItem('support_user') || '{}').id}
+          authToken={localStorage.getItem('token') || ''}
+          agentId={currentUser?.id}
           onClose={() => setActiveCall(null)}
         />
       )}
