@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { createEcho } from '@/lib/echo';
-import { Phone, PhoneOff, Mic, MicOff, User } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 
 interface CallInterfaceProps {
     partnerId: number; // User to call
@@ -95,17 +96,14 @@ export default function CallInterface({ partnerId, partnerName, authToken, agent
             // Handle ICE candidates
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
-                    fetch(`${API_URL}/call/ice-candidate`, {
+                    console.log('Sending ICE Candidate to:', partnerId);
+                    apiFetch('/call/ice-candidate', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${authToken}`
-                        },
                         body: JSON.stringify({
                             candidate: event.candidate,
                             to: partnerId
                         })
-                    });
+                    }).catch(err => console.error('ICE Candidate failed:', err));
                 }
             };
 
@@ -116,12 +114,9 @@ export default function CallInterface({ partnerId, partnerName, authToken, agent
             await pc.setLocalDescription(offer);
 
             // Send offer via API
-            await fetch(`${API_URL}/call/initiate`, {
+            console.log('Initiating call to:', partnerId);
+            await apiFetch('/call/initiate', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                },
                 body: JSON.stringify({
                     offer,
                     to: partnerId
@@ -138,12 +133,8 @@ export default function CallInterface({ partnerId, partnerName, authToken, agent
     const endCall = async (notifyPeer = true) => {
         if (notifyPeer && callStatus !== 'ended') {
             try {
-                await fetch(`${API_URL}/call/end`, {
+                await apiFetch('/call/end', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
                     body: JSON.stringify({ to: partnerId })
                 });
             } catch (e) { console.error(e); }
