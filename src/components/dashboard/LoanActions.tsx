@@ -6,6 +6,7 @@ interface LoanActionsProps {
     handleProceedLoan: (id: number) => void;
     handleSendKyc: (id: number) => void;
     setViewingUser: (id: number) => void;
+    handleViewLoanDetails: (id: number) => void;
     handleApproveLoan: (id: number) => void;
     handleLoanAction: (id: number, action: string, message: string) => void;
 }
@@ -16,6 +17,7 @@ export default function LoanActions({
     handleProceedLoan,
     handleSendKyc,
     setViewingUser,
+    handleViewLoanDetails,
     handleApproveLoan,
     handleLoanAction
 }: LoanActionsProps) {
@@ -74,7 +76,7 @@ export default function LoanActions({
 
                 {/* Action 2: View KYC Data */}
                 <button
-                    onClick={() => setViewingUser(loanDetails.loan.user_id)}
+                    onClick={() => handleViewLoanDetails(loanDetails.loan.id)}
                     className="w-full flex items-center justify-between p-3 bg-slate-50 text-slate-700 rounded-xl hover:bg-slate-100 transition-all group"
                 >
                     <div className="flex items-center gap-2">

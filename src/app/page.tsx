@@ -913,6 +913,7 @@ export default function Dashboard() {
                           handleProceedLoan={handleProceedLoan}
                           handleSendKyc={handleSendKyc}
                           setViewingUser={setViewingUser}
+                          handleViewLoanDetails={handleViewLoanDetails}
                           handleApproveLoan={handleApproveLoan}
                           handleLoanAction={handleLoanAction}
                         />
@@ -1260,15 +1261,53 @@ export default function Dashboard() {
               )}
 
               {selectedLoanDetail.form_data && Object.keys(selectedLoanDetail.form_data).length > 0 && (
-                <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
-                  <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-2">KYC Form Data</p>
-                  <div className="space-y-1">
-                    {Object.entries(selectedLoanDetail.form_data).map(([key, val]: [string, any]) => (
-                      <div key={key} className="flex justify-between text-[10px] font-bold">
-                        <span className="text-purple-500 uppercase">{key.replace(/_/g, ' ')}:</span>
-                        <span className="text-purple-800 text-right max-w-[60%] truncate">{String(val)}</span>
-                      </div>
-                    ))}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">KYC Documents & Info</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(selectedLoanDetail.form_data).map(([key, val]: [string, any]) => {
+                      const isImage = val && typeof val === 'object' && val.url;
+                      const isUrl = typeof val === 'string' && val.startsWith('http');
+
+                      if (isImage) {
+                        return (
+                          <div key={key} className="col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{key.replace(/_/g, ' ')}</p>
+                            <a href={val.url} target="_blank" rel="noopener noreferrer" className="block relative group aspect-video overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                              <img src={val.url} alt={key} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                              <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors flex items-center justify-center">
+                                <ExternalLink size={20} className="text-white opacity-0 group-hover:opacity-100 drop-shadow-md" />
+                              </div>
+                            </a>
+                            {val.geo && (
+                              <div className="flex gap-2 mt-2 text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                <span>Lat: {val.geo.lat?.toFixed(4)}</span>
+                                <span>Lng: {val.geo.lng?.toFixed(4)}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      if (isUrl) {
+                        return (
+                          <div key={key} className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex flex-col justify-center">
+                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">{key.replace(/_/g, ' ')}</p>
+                            <a href={val} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-600 hover:underline flex items-center gap-1">
+                              Open Link <ExternalLink size={10} />
+                            </a>
+                          </div>
+                        );
+                      }
+
+                      if (['consent', 'auto_approved', 'auto_approved_at'].includes(key)) return null;
+
+                      return (
+                        <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{key.replace(/_/g, ' ')}</p>
+                          <p className="text-[10px] font-black text-slate-700 break-words">{String(val)}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
