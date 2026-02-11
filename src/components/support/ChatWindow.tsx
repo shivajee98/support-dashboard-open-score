@@ -35,8 +35,10 @@ interface ChatWindowProps {
 
 export default function ChatWindow({ messages, currentUserId, onSendMessage, isLoading, ticketStatus, onViewProfile }: ChatWindowProps) {
     const [newMessage, setNewMessage] = useState('');
+    const [attachment, setAttachment] = useState<File | null>(null);
     const [isSending, setIsSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -46,14 +48,21 @@ export default function ChatWindow({ messages, currentUserId, onSendMessage, isL
         scrollToBottom();
     }, [messages]);
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setAttachment(e.target.files[0]);
+        }
+    };
+
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim() || isSending) return;
+        if ((!newMessage.trim() && !attachment) || isSending) return;
 
         setIsSending(true);
         try {
-            await onSendMessage(newMessage);
+            await onSendMessage(newMessage, attachment);
             setNewMessage('');
+            setAttachment(null);
         } catch (error) {
             console.error("Failed to send", error);
         } finally {
@@ -162,17 +171,58 @@ export default function ChatWindow({ messages, currentUserId, onSendMessage, isL
                 ) : (
                     <form onSubmit={handleSend} className="flex items-end gap-2">
                         <div className="flex-1 bg-slate-50 border border-slate-200 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 transition-all rounded-2xl overflow-hidden relative">
-                            <input
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Type your message..."
-                                className="w-full bg-transparent border-none p-3.5 focus:outline-none text-slate-900 placeholder:text-slate-400 text-sm font-medium"
-                                disabled={isSending}
-                            />
+                            {/* Attachment Preview */}
+                            {attachment && (
+                                <div className="px-3 pt-3 flex items-center gap-2">
+                                    <div className="relative group">
+                                        <div className="w-16 h-16 rounded-xl border border-slate-200 overflow-hidden bg-white">
+                                            <img
+                                                src={URL.createObjectURL(attachment)}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAttachment(null)}
+                                            className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full p-0.5 shadow-md hover:bg-rose-600 transition-colors"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-slate-400 max-w-[100px] truncate">{attachment.name}</span>
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-2 pr-2">
+                                <input
+                                    value={newMessage}
+                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    placeholder="Type your message..."
+                                    className="w-full bg-transparent border-none p-3.5 focus:outline-none text-slate-900 placeholder:text-slate-400 text-sm font-medium"
+                                    disabled={isSending}
+                                />
+
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                    accept="image/*,.pdf"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                    title="Attach File"
+                                >
+                                    <Paperclip size={20} />
+                                </button>
+                            </div>
                         </div>
                         <button
                             type="submit"
-                            disabled={!newMessage.trim() || isSending}
+                            disabled={(!newMessage.trim() && !attachment) || isSending}
                             className="p-3.5 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center justify-center min-w-[3.5rem]"
                         >
                             {isSending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}

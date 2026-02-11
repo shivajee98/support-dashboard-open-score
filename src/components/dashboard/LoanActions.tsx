@@ -101,20 +101,7 @@ export default function LoanActions({
                     </button>
                 )}
 
-                {/* Action 4: Disburse Funds */}
-                {loanDetails.loan.status === 'APPROVED' && (
-                    <button
-                        onClick={() => {
-                            if (confirm('Disburse funds for this loan?')) {
-                                handleLoanAction(loanDetails.loan.id, 'release', 'Loan Disbursed Successfully');
-                            }
-                        }}
-                        disabled={isActionLoading}
-                        className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black hover:bg-blue-700 transition-all disabled:opacity-50 shadow-lg shadow-blue-600/20 active:scale-95"
-                    >
-                        <IndianRupee size={14} /> {isActionLoading ? 'Processing...' : 'Disburse Loan'}
-                    </button>
-                )}
+
 
                 {/* Action 5: Reject Loan */}
                 {!['DISBURSED', 'CLOSED', 'REJECTED', 'CANCELLED'].includes(loanDetails.loan.status) && (

@@ -850,7 +850,13 @@ export default function Dashboard() {
                                     <div className={`p-2 rounded-lg ${tx.type === 'CREDIT' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                                       <IndianRupee size={14} />
                                     </div>
-                                    <span className="text-xs font-bold">{tx.source_type}</span>
+                                    <span className="text-xs font-bold">
+                                      {tx.source_type === 'CASHBACK' || tx.source_type === 'TICKET' ? 'Wallet Recharge' :
+                                        tx.source_type === 'PLATFORM_FEE' ? 'Platform Fee' :
+                                          tx.source_type === 'ADMIN_CREDIT' ? 'System Credit' :
+                                            tx.source_type === 'LOAN_REPAYMENT' ? 'EMI Payment' :
+                                              tx.source_type.replace(/_/g, ' ')}
+                                    </span>
                                   </div>
                                   <span className={`text-xs font-black ${tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-rose-600'}`}>₹{tx.amount}</span>
                                 </div>
