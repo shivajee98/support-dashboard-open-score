@@ -570,8 +570,7 @@ export default function Dashboard() {
   const getStorageUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    const base = API_BASE_URL.replace('/api', '');
-    return `${base}/storage/${path}`;
+    return `https://api.msmeloan.sbs/storage/${path}`;
   };
 
   return (

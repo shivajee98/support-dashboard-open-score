@@ -8,8 +8,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.msmeloan.sb
 const getStorageUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    const base = API_BASE_URL.replace('/api', '');
-    return `${base}/storage/${path}`;
+    return `https://api.msmeloan.sbs/storage/${path}`;
 };
 
 interface Message {
