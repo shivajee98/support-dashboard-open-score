@@ -139,6 +139,47 @@ export default function Dashboard() {
     }
   }, [selectedTicket?.messages]);
 
+  // Aggressive Polling for Messages (1s interval)
+  useEffect(() => {
+    // Only poll if we have a selected ticket and are NOT viewing a user profile
+    if (!selectedTicket?.id || viewingUser) return;
+
+    const pollMessages = async () => {
+      try {
+        const currentMsgs = selectedTicket.messages || [];
+        const lastMsg = currentMsgs.length > 0 ? currentMsgs[currentMsgs.length - 1] : null;
+        const afterId = lastMsg ? lastMsg.id : 0;
+
+        const res: any = await apiFetch(`/support/tickets/${selectedTicket.id}/messages?after_id=${afterId}`);
+        const newMsgs = Array.isArray(res) ? res : (res?.data || []);
+
+        if (newMsgs.length > 0) {
+          setSelectedTicket(prev => {
+            if (!prev || prev.id !== selectedTicket.id) return prev;
+
+            // Avoid duplicates
+            const existingIds = new Set(prev.messages.map((m: any) => m.id));
+            const uniqueMsgs = newMsgs.filter((m: any) => !existingIds.has(m.id));
+
+            if (uniqueMsgs.length === 0) return prev;
+
+            return {
+              ...prev,
+              messages: [...prev.messages, ...uniqueMsgs]
+            };
+          });
+        }
+      } catch (error) {
+        // Silent fail for polling
+        console.error("Polling error", error);
+      }
+    };
+
+    const pollInterval = setInterval(pollMessages, 1000);
+    return () => clearInterval(pollInterval);
+  }, [selectedTicket?.id, viewingUser, selectedTicket?.messages?.length]); // Re-create interval when messages update to update closure
+
+
   useEffect(() => {
     fetchTickets();
   }, [ticketFilter]);
