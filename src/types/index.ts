@@ -16,4 +16,7 @@ export interface Ticket {
     payment_status?: string;
     payment_amount?: string;
     unique_ticket_id?: string;
+    assigned_to?: number;
+    assignedAgent?: any;
+    category?: any;
 }
