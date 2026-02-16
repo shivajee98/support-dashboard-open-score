@@ -922,18 +922,28 @@ export default function Dashboard() {
                             </div>
                             <div className="p-5 bg-white border border-slate-100 rounded-[2rem]">
                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Status</p>
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${userData.user.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                  {userData.user.status}
-                                </span>
-                                {/* Call Button */}
-                                <button
-                                  onClick={() => setActiveCall({ userId: userData.user.id, name: userData.user.name })}
-                                  className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                                  title="Call Customer"
-                                >
-                                  <Phone size={14} />
-                                </button>
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${userData.user.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                    {userData.user.status}
+                                  </span>
+                                  {/* Call Button */}
+                                  <button
+                                    onClick={() => setActiveCall({ userId: userData.user.id, name: userData.user.name })}
+                                    className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                                    title="Call Customer"
+                                  >
+                                    <Phone size={14} />
+                                  </button>
+                                </div>
+                                {userData.ongoingLoans && userData.ongoingLoans.length > 0 && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase">Loan:</span>
+                                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[9px] font-black uppercase border border-blue-100 italic">
+                                      {userData.ongoingLoans[0].status}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
