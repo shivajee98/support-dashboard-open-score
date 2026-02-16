@@ -209,6 +209,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchTickets();
+
+    // Add periodic polling to keep the list in sync across agents
+    const interval = setInterval(fetchTickets, 5000);
+    return () => clearInterval(interval);
   }, [ticketFilter]);
 
   const fetchTickets = async () => {
