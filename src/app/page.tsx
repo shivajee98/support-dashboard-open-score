@@ -28,7 +28,8 @@ import {
   Briefcase,
   PlayCircle,
   X,
-  Phone
+  Phone,
+  Calendar
 } from 'lucide-react';
 import CallInterface from '@/components/CallInterface';
 import { Toaster, toast } from 'sonner';
@@ -948,26 +949,95 @@ export default function Dashboard() {
                             </div>
                           </div>
 
+                          {/* Loan History Section */}
                           <div>
-                            <h5 className="font-black mb-4 flex items-center gap-2 px-2"><History size={16} /> Transaction Log</h5>
+                            <h5 className="font-black mb-4 flex items-center gap-2 px-2"><Briefcase size={16} /> Loan History</h5>
+                            <div className="space-y-3">
+                              {userData.loans?.ongoing?.concat(userData.loans?.past || []).map((loan: any) => (
+                                <div key={loan.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+                                  <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loan #{loan.id}</p>
+                                      <p className="text-lg font-black text-slate-900">₹{Number(loan.amount).toLocaleString()}</p>
+                                    </div>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${loan.status === 'ACTIVE' || loan.status === 'DISBURSED' ? 'bg-blue-100 text-blue-700' :
+                                        loan.status === 'CLOSED' ? 'bg-emerald-100 text-emerald-700' :
+                                          loan.status === 'DEFAULTED' || loan.status === 'OVERDUE' ? 'bg-rose-100 text-rose-700' :
+                                            'bg-slate-100 text-slate-500'
+                                      }`}>
+                                      {loan.status}
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-4 mb-3">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                                      <Calendar size={12} />
+                                      <span>{new Date(loan.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                                      <BadgeCheck size={12} />
+                                      <span>{loan.plan?.name || 'Standard Plan'}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Repayment Breakdown */}
+                                  {loan.repayments && loan.repayments.length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-slate-50">
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Repayment Schedule</p>
+                                      <div className="space-y-1">
+                                        {loan.repayments.map((r: any) => (
+                                          <div key={r.id} className="flex justify-between items-center text-[10px] p-1.5 rounded bg-slate-50/50">
+                                            <span className="font-mono text-slate-500">#{r.id} • {new Date(r.due_date).toLocaleDateString()}</span>
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-bold">₹{r.amount}</span>
+                                              {r.status === 'PAID' ?
+                                                <CheckCircle2 size={10} className="text-emerald-500" /> :
+                                                <div className={`w-2 h-2 rounded-full ${new Date(r.due_date) < new Date() ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                                              }
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                              {(!userData.loans?.ongoing?.length && !userData.loans?.past?.length) && (
+                                <p className="text-center text-xs text-slate-400 py-4 italic">No loan history found.</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h5 className="font-black mb-4 flex items-center gap-2 px-2 mt-6"><History size={16} /> Transaction Log</h5>
                             <div className="space-y-2">
                               {userData.transactions?.map((tx: any) => (
-                                <div key={tx.id} className="flex justify-between p-3 bg-white border border-slate-50 rounded-xl">
+                                <div key={tx.id} className="flex justify-between p-3 bg-white border border-slate-50 rounded-xl hover:bg-slate-50 transition-colors">
                                   <div className="flex items-center gap-3">
                                     <div className={`p-2 rounded-lg ${tx.type === 'CREDIT' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                                       <IndianRupee size={14} />
                                     </div>
-                                    <span className="text-xs font-bold">
-                                      {tx.source_type === 'CASHBACK' || tx.source_type === 'TICKET' ? 'Wallet Recharge' :
-                                        tx.source_type === 'PLATFORM_FEE' ? 'Platform Fee' :
-                                          tx.source_type === 'ADMIN_CREDIT' ? 'System Credit' :
-                                            tx.source_type === 'LOAN_REPAYMENT' ? 'EMI Payment' :
-                                              tx.source_type.replace(/_/g, ' ')}
-                                    </span>
+                                    <div>
+                                      <p className="text-xs font-bold text-slate-800">
+                                        {tx.source_type === 'CASHBACK' || tx.source_type === 'TICKET' ? 'Wallet Recharge' :
+                                          tx.source_type === 'PLATFORM_FEE' ? 'Platform Fee' :
+                                            tx.source_type === 'ADMIN_CREDIT' ? 'System Credit' :
+                                              tx.source_type === 'LOAN_REPAYMENT' ? 'EMI Payment' :
+                                                tx.source_type.replace(/_/g, ' ')}
+                                      </p>
+                                      <p className="text-[9px] font-mono text-slate-400 font-bold mt-0.5">
+                                        {new Date(tx.created_at).toLocaleString()}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <span className={`text-xs font-black ${tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-rose-600'}`}>₹{tx.amount}</span>
+                                  <span className={`text-xs font-black ${tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {tx.type === 'CREDIT' ? '+' : '-'}₹{tx.amount}
+                                  </span>
                                 </div>
                               ))}
+                              {!userData.transactions?.length && (
+                                <p className="text-center text-xs text-slate-400 py-4 italic">No transaction history.</p>
+                              )}
                             </div>
                           </div>
                         </div>
