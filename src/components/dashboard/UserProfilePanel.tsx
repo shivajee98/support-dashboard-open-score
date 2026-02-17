@@ -1,5 +1,5 @@
 
-import { X, ArrowLeft, Calendar, FileText, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { X, ArrowLeft, Calendar, FileText, CheckCircle2, Clock, AlertCircle, ImageIcon } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -7,9 +7,11 @@ import { toast } from 'sonner';
 interface UserProfilePanelProps {
     userId: number;
     onClose: () => void;
+    currentUser: any;
+    getStorageUrl?: (path: string) => string;
 }
 
-export default function UserProfilePanel({ userId, onClose }: UserProfilePanelProps) {
+export default function UserProfilePanel({ userId, onClose, currentUser, getStorageUrl }: UserProfilePanelProps) {
     const [user, setUser] = useState<any>(null);
     const [loans, setLoans] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -68,10 +70,15 @@ export default function UserProfilePanel({ userId, onClose }: UserProfilePanelPr
                         <h2 className="text-lg font-black text-slate-900 uppercase tracking-wide">Customer Profile</h2>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col items-end gap-1">
                     <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest ${user.user?.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                         {user.user?.status}
                     </span>
+                    {currentUser?.support_category && (
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
+                            {currentUser.support_category.name}
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -108,7 +115,66 @@ export default function UserProfilePanel({ userId, onClose }: UserProfilePanelPr
                         </div>
                         <div className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
                             <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Wallet App</p>
-                            <p className="text-3xl font-black text-emerald-600">₹{Number(user.wallet?.balance || 0).toLocaleString()}</p>
+                            <p className="text-3xl font-black text-emerald-600">₹{Number(user.user?.wallet_balance || 0).toLocaleString()}</p>
+                        </div>
+                        <div className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Total Referrals</p>
+                            <p className="text-3xl font-black text-blue-600 font-mono">{user.referral_history?.length || 0}</p>
+                        </div>
+                        <div className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Cashback</p>
+                            <p className="text-3xl font-black text-amber-600 font-mono">₹{user.user?.total_cashback || 0}</p>
+                        </div>
+                    </div>
+
+                    {/* Merchant Documents & Images */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <AlertCircle size={12} /> KYC Identifiers
+                            </h4>
+                            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Aadhaar Number</p>
+                                    <p className="text-xs font-black text-slate-900 font-mono tracking-widest">{user.user?.aadhaar_number || 'NOT PROVIDED'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">PAN Number</p>
+                                    <p className="text-xs font-black text-slate-900 font-mono tracking-widest">{user.user?.pan_number || 'NOT PROVIDED'}</p>
+                                </div>
+                                {user.user?.business_name && (
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Business Name</p>
+                                        <p className="text-xs font-black text-slate-900">{user.user.business_name}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-2 space-y-6">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <ImageIcon size={12} /> Merchant Documents
+                            </h4>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {user.user?.profile_image && (
+                                    <div className="bg-white p-2 rounded-2xl border border-slate-100 shadow-sm transition-all hover:scale-105 active:scale-95 group relative">
+                                        <img src={user.user.profile_image} alt="Profile" className="w-full h-32 object-cover rounded-xl" />
+                                        <p className="text-[8px] font-black text-slate-400 uppercase mt-2 text-center">Profile Image</p>
+                                    </div>
+                                )}
+                                {Array.isArray(user.user?.shop_images) && user.user.shop_images.map((img: string, idx: number) => (
+                                    <div key={idx} className="bg-white p-2 rounded-2xl border border-slate-100 shadow-sm transition-all hover:scale-105 active:scale-95 group relative">
+                                        <img src={img} alt={`Shop ${idx}`} className="w-full h-32 object-cover rounded-xl" />
+                                        <p className="text-[8px] font-black text-slate-400 uppercase mt-2 text-center">Shop Image {idx + 1}</p>
+                                    </div>
+                                ))}
+                                {(!user.user?.profile_image && (!user.user?.shop_images || user.user.shop_images.length === 0)) && (
+                                    <div className="col-span-full py-12 bg-slate-50 rounded-[2rem] border border-slate-100 border-dashed flex flex-col items-center justify-center opacity-40">
+                                        <ImageIcon size={24} className="mb-2" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest">No Documents Uploaded</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 

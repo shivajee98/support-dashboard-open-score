@@ -89,6 +89,11 @@ export default function NavigationSidebar({
                         <CheckCircle2 size={10} />
                         <span className="uppercase tracking-widest">Online</span>
                     </div>
+                    {currentUser?.support_category && (
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 border-t border-slate-200 pt-2 leading-relaxed">
+                            {currentUser.support_category.name}
+                        </p>
+                    )}
                 </div>
 
                 <button

@@ -1,12 +1,14 @@
-import { ExternalLink, X } from 'lucide-react';
+import { ExternalLink, X, Clock } from 'lucide-react';
 import { Loan } from '@/components/dashboard/types';
 
 interface LoanDetailModalProps {
     loan: any; // Using any for now as the specialized loan detail structure is complex
     onClose: () => void;
+    currentUser?: any;
+    getStorageUrl?: (path: string) => string;
 }
 
-export default function LoanDetailModal({ loan: selectedLoanDetail, onClose }: LoanDetailModalProps) {
+export default function LoanDetailModal({ loan: selectedLoanDetail, onClose, currentUser, getStorageUrl }: LoanDetailModalProps) {
     if (!selectedLoanDetail) return null;
 
     return (
@@ -16,6 +18,11 @@ export default function LoanDetailModal({ loan: selectedLoanDetail, onClose }: L
                     <div>
                         <h3 className="text-xl font-black text-slate-900">Loan Details</h3>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">ID #{selectedLoanDetail.loan?.id}</p>
+                        {currentUser?.support_category && (
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1 bg-slate-50 px-2 py-1 rounded-md inline-block">
+                                {currentUser.support_category.name}
+                            </p>
+                        )}
                     </div>
                     <button onClick={onClose} className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-all">
                         <X size={18} className="text-slate-600" />
@@ -76,15 +83,19 @@ export default function LoanDetailModal({ loan: selectedLoanDetail, onClose }: L
                                     const isImgStr = typeof val === 'string' && (val.match(/\.(jpg|jpeg|png|webp|gif|svg|avif)$/i) || val.includes('storage/'));
                                     const isImage = isImgObj || isImgStr;
                                     const imageUrl = isImgObj ? val.url : val;
-
                                     const isUrl = typeof val === 'string' && val.startsWith('http') && !isImage;
+
+                                    let resolvedImageUrl = imageUrl;
+                                    if (isImage && getStorageUrl && resolvedImageUrl && typeof resolvedImageUrl === 'string' && !resolvedImageUrl.startsWith('http')) {
+                                        resolvedImageUrl = getStorageUrl(resolvedImageUrl);
+                                    }
 
                                     if (isImage) {
                                         return (
                                             <div key={key} className="col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-2xl border border-slate-100">
                                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{key.replace(/_/g, ' ')}</p>
-                                                <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="block relative group aspect-video overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
-                                                    <img src={imageUrl} alt={key} className="w-full h-full object-contain transition-transform group-hover:scale-105" />
+                                                <a href={resolvedImageUrl} target="_blank" rel="noopener noreferrer" className="block relative group aspect-video overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+                                                    <img src={resolvedImageUrl} alt={key} className="w-full h-full object-contain transition-transform group-hover:scale-105" />
                                                     <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors flex items-center justify-center">
                                                         <ExternalLink size={20} className="text-white opacity-0 group-hover:opacity-100 drop-shadow-md" />
                                                     </div>
@@ -119,6 +130,45 @@ export default function LoanDetailModal({ loan: selectedLoanDetail, onClose }: L
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </div>
+                    )}
+
+                    {selectedLoanDetail.repayments && selectedLoanDetail.repayments.length > 0 && (
+                        <div className="mt-8">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-4 flex items-center gap-2">
+                                <Clock size={12} /> Repayment Schedule
+                            </h4>
+                            <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="bg-slate-50 border-b border-slate-100">
+                                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">EMI</th>
+                                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
+                                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Due Date</th>
+                                                <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {selectedLoanDetail.repayments.map((r: any) => (
+                                                <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-4 py-3 text-[10px] font-black text-slate-900 font-mono">#{r.emi_number}</td>
+                                                    <td className="px-4 py-3 text-[10px] font-black text-slate-900 font-mono">₹{r.amount}</td>
+                                                    <td className="px-4 py-3 text-[10px] font-bold text-slate-500">{new Date(r.due_date).toLocaleDateString()}</td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${r.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
+                                                            r.status === 'OVERDUE' ? 'bg-rose-100 text-rose-700' :
+                                                                'bg-amber-100 text-amber-700'
+                                                            }`}>
+                                                            {r.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}

@@ -69,11 +69,14 @@ export default function Dashboard() {
   const [activeCall, setActiveCall] = useState<any>(null);
 
   // -- Roles & Permissions --
-  const role = currentUser?.role?.toLowerCase();
-  const isLoanKycRole = role === 'admin' || currentUser?.support_category_id === 2; // Assuming 2 is Loan/KYC
-  const isCashbackRole = role === 'admin' || currentUser?.support_category_id === 3; // Assuming 3 is Cashback/Rewards
-  const isTransferRole = role === 'admin' || currentUser?.support_category_id === 4; // Assuming 4 is Transfer/Payments (or 5)
-  const isAdmin = role === 'admin';
+  const role = currentUser?.role?.toLowerCase() || '';
+  const isAdmin = role === 'admin' || role.includes('support'); // Any elevated role
+  const isActualAdmin = role === 'admin';
+  const categorySlug = currentUser?.support_category?.slug || '';
+
+  const isLoanKycRole = isAdmin && (isActualAdmin || categorySlug.includes('loan') || categorySlug.includes('kyc'));
+  const isCashbackRole = isAdmin && (isActualAdmin || categorySlug.includes('cashback'));
+  const isTransferRole = isAdmin && (isActualAdmin || categorySlug.includes('transfer') || categorySlug.includes('emi'));
 
   // -- Effects --
 
@@ -114,7 +117,11 @@ export default function Dashboard() {
       const user: any = await apiFetch('/auth/me');
       setCurrentUser(user);
       fetchTickets();
-      if (user.role === 'admin' || user.support_category_id === 4) { // Assuming 4 is Transfer/Payments
+
+      const userRole = user.role?.toLowerCase() || '';
+      const userCatSlug = user.support_category?.slug || '';
+
+      if (userRole === 'admin' || userCatSlug.includes('transfer') || userCatSlug.includes('emi')) {
         fetchPendingRepayments();
       }
     } catch (err) {
@@ -376,7 +383,7 @@ export default function Dashboard() {
     if (!confirm('Approve this manual repayment?')) return;
     setIsActionLoading(true);
     try {
-      await apiFetch(`/admin/loan-repayments/${id}/approve-manual`, { method: 'POST' });
+      await apiFetch(`/admin/repayments/${id}/approve`, { method: 'POST' });
       toast.success('Repayment verified successfully');
       setPendingRepayments(prev => prev.filter(p => p.id !== id));
       setShowRepaymentModal(false);
@@ -418,7 +425,7 @@ export default function Dashboard() {
   };
 
   const handleViewProfile = (userId: number) => {
-    window.open(`/admin/users/${userId}`, '_blank');
+    setViewingUser(userId);
   };
 
   if (isLoading) { // Use Loader2 here? Check imports. Yes, lucide-react doesn't export Loader2 usually, it's Loader or specific package. Wait.
@@ -485,6 +492,8 @@ export default function Dashboard() {
             <UserProfilePanel
               userId={viewingUser}
               onClose={() => setViewingUser(null)}
+              currentUser={currentUser}
+              getStorageUrl={getStorageUrl}
             />
           ) : activeTab === 'tickets' ? (
             // Ticket View: Chat + Context
@@ -517,13 +526,13 @@ export default function Dashboard() {
                 handleProcessTicketAction={handleProcessTicketAction}
                 handleApproveTicketPayment={handleApproveTicketPayment}
                 handleRejectTicketPayment={handleRejectTicketPayment}
-                isAdmin={currentUser?.role === 'admin'}
+                isAdmin={isActualAdmin}
                 isCashbackRole={isCashbackRole}
                 setShowCashbackModal={setShowCashbackModal}
                 isTransferRole={isTransferRole}
                 setActiveTab={setActiveTab}
                 handleResolveTicket={handleResolveTicket}
-                handleViewProfile={setViewingUser}
+                handleViewProfile={handleViewProfile}
               />
             </>
           ) : (
@@ -633,6 +642,8 @@ export default function Dashboard() {
         <LoanDetailModal
           loan={selectedLoanDetail}
           onClose={() => setShowLoanDetailModal(false)}
+          currentUser={currentUser}
+          getStorageUrl={getStorageUrl}
         />
       )}
 
