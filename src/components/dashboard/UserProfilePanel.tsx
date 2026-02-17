@@ -18,13 +18,18 @@ export default function UserProfilePanel({ userId, onClose }: UserProfilePanelPr
         const fetchDetails = async () => {
             setLoading(true);
             try {
-                // Fetch User Details
-                const userRes = await apiFetch(`/admin/users/${userId}/full-details`);
+                // Fetch User Details (Includes loans and transactions)
+                const userRes: any = await apiFetch(`/admin/users/${userId}/full-details`);
                 setUser(userRes);
 
-                // Fetch Loans
-                const loansRes: any = await apiFetch(`/admin/users/${userId}/loans`);
-                setLoans(Array.isArray(loansRes) ? loansRes : []);
+                // Use loans from the full-details response
+                // Structure: userRes.loans = { ongoing: [], past: [], ... }
+                if (userRes.loans) {
+                    const allLoans = [...(userRes.loans.ongoing || []), ...(userRes.loans.past || [])];
+                    setLoans(allLoans);
+                } else {
+                    setLoans([]);
+                }
             } catch (e) {
                 console.error(e);
                 toast.error("Failed to load user profile");

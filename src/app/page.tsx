@@ -154,18 +154,17 @@ export default function Dashboard() {
 
     // Fetch fresh details for the ticket to ensure we have messages
     try {
-      const details: any = await apiFetch(`/admin/support/tickets/${ticket.id}`);
+      const details: any = await apiFetch(`/support/tickets/${ticket.id}`);
       setSelectedTicket(details);
 
       // Fetch Loan Details if applicable
       if (details.user_id) {
         try {
-          const loans: any = await apiFetch(`/admin/users/${details.user_id}/loans`);
-          // Assuming we pick the active or last loan
-          const activeLoan = loans.find((l: any) => l.status === 'ACTIVE' || l.status === 'PENDING') || loans[0];
+          const userFullDetails: any = await apiFetch(`/admin/users/${details.user_id}/full-details`);
 
-          if (activeLoan) {
-            const repayments = await apiFetch(`/admin/loans/${activeLoan.id}/repayments`);
+          if (userFullDetails.loans && userFullDetails.loans.ongoing && userFullDetails.loans.ongoing.length > 0) {
+            const activeLoan = userFullDetails.loans.ongoing[0]; // Assuming the first ongoing loan is the primary one
+            const repayments = userFullDetails.loans.pending_emis || []; // Using the structure we saw in AdminController
             setLoanDetails({ loan: activeLoan, repayments });
           } else {
             setLoanDetails(null);
@@ -210,7 +209,7 @@ export default function Dashboard() {
         if (purpose) formData.append('purpose', purpose);
       }
 
-      const res: any = await apiFetch(`/admin/support/tickets/${selectedTicket.id}/reply`, {
+      const res: any = await apiFetch(`/support/tickets/${selectedTicket.id}/message`, {
         method: 'POST',
         body: formData,
       });
@@ -237,7 +236,10 @@ export default function Dashboard() {
     if (!confirm('Are you sure you want to resolve and close this ticket?')) return;
 
     try {
-      await apiFetch(`/admin/support/tickets/${selectedTicket.id}/resolve`, { method: 'POST' });
+      await apiFetch(`/support/tickets/${selectedTicket.id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'closed' })
+      });
       toast.success('Ticket resolved');
       setTickets(prev => prev.filter(t => t.id !== selectedTicket.id));
       setSelectedTicket(null);
