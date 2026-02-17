@@ -8,12 +8,17 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
         token = localStorage.getItem('token') || '';
     }
 
-    const headers = {
-        'Content-Type': 'application/json',
+    const isFormData = options.body instanceof FormData;
+
+    const headers: any = {
         'Accept': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.headers,
     };
+
+    if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+    }
 
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
