@@ -33,10 +33,10 @@ export default function Sidebar({
     );
 
     return (
-        <div className="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
+        <div className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
             <div className="p-6 border-b border-slate-100">
                 <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-xl font-black tracking-tight text-slate-900">Inbox</h1>
+                    <h1 className="text-xl font-black tracking-tight text-slate-900">Active Tickets</h1>
                     <button onClick={onRefresh} className="p-2 hover:bg-slate-100 rounded-xl transition-all active:rotate-180">
                         <RotateCw size={18} className="text-slate-400" />
                     </button>

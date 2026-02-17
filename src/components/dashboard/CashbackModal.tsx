@@ -30,7 +30,7 @@ export default function CashbackModal({
                             type="number"
                             value={amount}
                             onChange={e => setAmount(e.target.value)}
-                            className="w-full p-4 bg-slate-100 rounded-2xl outline-none font-black text-blue-600 text-lg"
+                            className="w-full p-4 bg-slate-100 rounded-2xl outline-none font-black text-blue-600 text-lg placeholder:text-slate-400"
                             placeholder="0.00"
                         />
                     </div>
@@ -39,7 +39,7 @@ export default function CashbackModal({
                         <textarea
                             value={reason}
                             onChange={e => setReason(e.target.value)}
-                            className="w-full p-4 bg-slate-100 rounded-2xl outline-none text-sm min-h-[100px] font-medium"
+                            className="w-full p-4 bg-slate-100 rounded-2xl outline-none text-sm min-h-[100px] font-medium text-slate-900 placeholder:text-slate-400"
                         />
                     </div>
                 </div>

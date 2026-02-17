@@ -8,6 +8,7 @@ import { Ticket } from '@/components/dashboard/types';
 
 // Components
 import Sidebar from '@/components/dashboard/Sidebar';
+import NavigationSidebar from '@/components/dashboard/NavigationSidebar';
 import ChatArea from '@/components/dashboard/ChatArea';
 import CustomerContextPanel from '@/components/dashboard/CustomerContextPanel';
 
@@ -17,6 +18,7 @@ import RepaymentModal from '@/components/dashboard/RepaymentModal';
 import LoanDetailModal from '@/components/dashboard/LoanDetailModal';
 import CashbackModal from '@/components/dashboard/CashbackModal';
 import CallInterfaceModal from '@/components/dashboard/CallInterfaceModal';
+import UserProfilePanel from '@/components/dashboard/UserProfilePanel';
 
 // Icons for notification cards
 import { ShieldAlert, User, X, Check, ImageIcon, Eye, RefreshCcw } from 'lucide-react';
@@ -91,7 +93,7 @@ export default function Dashboard() {
     if (!currentUser) return;
     const pollUnassigned = async () => {
       try {
-        const res: any = await apiFetch('/admin/support/pool'); // Endpoint to get unassigned/new tickets
+        const res: any = await apiFetch('/admin/support/tickets/unassigned'); // Endpoint to get unassigned/new tickets
         if (Array.isArray(res)) {
           const newTickets = res.filter((t: Ticket) => !acknowledgedTicketIds.has(t.id));
           setIncomingTickets(newTickets);
@@ -436,147 +438,180 @@ export default function Dashboard() {
     <div className="flex h-screen bg-white overflow-hidden font-sans">
       <Toaster position="top-right" />
 
-      {/* Main Layout: Sidebar + Content */}
-      <div className="flex w-full">
+      {/* Main Layout: Navigation + Sidebar + Content */}
+      <div className="flex w-full h-full">
 
-        {/* Left Sidebar: Tickets List */}
-        <Sidebar
-          currentUser={currentUser}
-          tickets={tickets}
-          selectedTicket={selectedTicket}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+        {/* Far Left: Navigation Sidebar */}
+        <NavigationSidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
           ticketFilter={ticketFilter}
           setTicketFilter={setTicketFilter}
-          onSelectTicket={selectTicket}
-          onRefresh={fetchTickets}
+          onSync={() => {
+            toast.promise(fetchTickets(), {
+              loading: 'Syncing...',
+              success: 'Synced successfully',
+              error: 'Failed to sync'
+            });
+          }}
+          onLogout={() => {
+            localStorage.removeItem('token');
+            router.push('/login');
+          }}
+          currentUser={currentUser}
         />
 
-        {/* Middle: Chat / Content Area */}
-        {activeTab === 'tickets' ? (
-          <ChatArea
-            selectedTicket={selectedTicket}
-            replyText={replyText}
-            setReplyText={setReplyText}
-            isSending={isSending}
-            onSendMessage={handleSendMessage}
-            attachment={attachment}
-            setAttachment={setAttachment}
-            fileInputRef={fileInputRef}
-            getStorageUrl={getStorageUrl}
-          />
-        ) : (
-          // EMI Verification Inbox Mode
-          <div className="flex-1 flex flex-col bg-slate-50/30 overflow-hidden animate-in fade-in duration-300">
-            <div className="p-8 border-b border-slate-200 bg-white flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-black tracking-tight">EMI Verification Inbox</h2>
-                <p className="text-sm font-medium text-slate-500 mt-1 italic">Review manual payment screenshots and verify transactions.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting Verification</p>
-                  <p className="text-xl font-black text-blue-600">{pendingRepayments.length}</p>
-                </div>
-                <button onClick={fetchPendingRepayments} className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all">
-                  <RefreshCcw size={20} className="text-slate-600" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-8">
-              {pendingRepayments.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                  <div className="w-20 h-20 bg-white rounded-[2rem] border border-slate-200 flex items-center justify-center mb-4 shadow-sm">
-                    <Check className="text-emerald-500" size={32} />
-                  </div>
-                  <p className="font-black uppercase tracking-widest text-xs">All caught up!</p>
-                  <p className="text-sm font-medium mt-1">No pending manual repayments for verification.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {pendingRepayments.map((r: any) => (
-                    <div key={r.id} className="bg-white rounded-[2.5rem] border border-slate-200 p-6 shadow-sm hover:shadow-xl transition-all group">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                          <ImageIcon size={20} />
-                        </div>
-                        <span className="text-[10px] font-black text-slate-400 tracking-widest">#{r.id}</span>
-                      </div>
-                      <h4 className="font-black text-slate-900 border-b border-slate-50 pb-3 mb-3">{r.loan.user.name}</h4>
-                      <div className="space-y-2 mb-6">
-                        <div className="flex justify-between text-xs font-bold">
-                          <span className="text-slate-400 uppercase tracking-tighter">Amount Due:</span>
-                          <span className="text-blue-600">₹{r.amount}</span>
-                        </div>
-                        <div className="flex justify-between text-xs font-bold">
-                          <span className="text-slate-400 uppercase tracking-tighter">Due Date:</span>
-                          <span>{new Date(r.due_date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex justify-between text-xs font-bold">
-                          <span className="text-slate-400 uppercase tracking-tighter">Method:</span>
-                          <span className="text-slate-600">{r.payment_mode}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => { setSelectedRepayment(r); setShowRepaymentModal(true); }}
-                          className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
-                        >
-                          <Eye size={14} /> View Proof
-                        </button>
-                        <button
-                          onClick={() => handleApproveRepayment(r.id)}
-                          disabled={isActionLoading}
-                          className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50"
-                        >
-                          <Check size={20} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Right Sidebar: Context Panel (Only in tickets mode) */}
+        {/* Tickets List Sidebar (Only visible in tickets view) */}
         {activeTab === 'tickets' && (
-          <CustomerContextPanel
+          <Sidebar
+            currentUser={currentUser}
+            tickets={tickets}
             selectedTicket={selectedTicket}
-            viewingUser={viewingUser}
-            setViewingUser={setViewingUser}
-            isLoanKycRole={isLoanKycRole}
-            loanDetails={loanDetails}
-            isActionLoading={isActionLoading}
-            handleProceedLoan={handleProceedLoan}
-            handleSendKyc={handleSendKyc}
-            handleViewLoanDetails={handleViewLoanDetails}
-            handleApproveLoan={handleApproveLoan}
-            handleLoanAction={handleLoanAction}
-            handleRejectLoan={handleRejectLoan}
-            role={role}
-            handleProcessTicketAction={handleProcessTicketAction}
-            handleApproveTicketPayment={handleApproveTicketPayment}
-            handleRejectTicketPayment={handleRejectTicketPayment}
-            isAdmin={isAdmin}
-            isCashbackRole={isCashbackRole}
-            setShowCashbackModal={setShowCashbackModal}
-            isTransferRole={isTransferRole}
-            setActiveTab={setActiveTab}
-            handleResolveTicket={handleResolveTicket}
-            handleViewProfile={handleViewProfile}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            ticketFilter={ticketFilter}
+            setTicketFilter={setTicketFilter}
+            onSelectTicket={selectTicket}
+            onRefresh={fetchTickets}
           />
         )}
+
+        {/* Right: Main Content Area */}
+        <div className="flex-1 flex overflow-hidden relative">
+          {viewingUser ? (
+            // Full Screen Profile View
+            <UserProfilePanel
+              userId={viewingUser}
+              onClose={() => setViewingUser(null)}
+            />
+          ) : activeTab === 'tickets' ? (
+            // Ticket View: Chat + Context
+            <>
+              <ChatArea
+                selectedTicket={selectedTicket}
+                replyText={replyText}
+                setReplyText={setReplyText}
+                isSending={isSending}
+                onSendMessage={handleSendMessage}
+                attachment={attachment}
+                setAttachment={setAttachment}
+                fileInputRef={fileInputRef}
+                getStorageUrl={getStorageUrl}
+              />
+              <CustomerContextPanel
+                selectedTicket={selectedTicket}
+                viewingUser={viewingUser}
+                setViewingUser={setViewingUser}
+                isLoanKycRole={isLoanKycRole}
+                loanDetails={loanDetails}
+                isActionLoading={isActionLoading}
+                handleProceedLoan={handleProceedLoan}
+                handleSendKyc={handleSendKyc}
+                handleViewLoanDetails={handleViewLoanDetails}
+                handleApproveLoan={handleApproveLoan}
+                handleLoanAction={handleLoanAction}
+                handleRejectLoan={handleRejectLoan}
+                role={currentUser?.role || ''}
+                handleProcessTicketAction={handleProcessTicketAction}
+                handleApproveTicketPayment={handleApproveTicketPayment}
+                handleRejectTicketPayment={handleRejectTicketPayment}
+                isAdmin={currentUser?.role === 'admin'}
+                isCashbackRole={isCashbackRole}
+                setShowCashbackModal={setShowCashbackModal}
+                isTransferRole={isTransferRole}
+                setActiveTab={setActiveTab}
+                handleResolveTicket={handleResolveTicket}
+                handleViewProfile={setViewingUser}
+              />
+            </>
+          ) : (
+            // EMI Verification Inbox Mode
+            <div className="flex-1 flex flex-col bg-slate-50/30 overflow-hidden animate-in fade-in duration-300">
+              <div className="p-8 border-b border-slate-200 bg-white flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight">EMI Verification Inbox</h2>
+                  <p className="text-sm font-medium text-slate-500 mt-1 italic">Review manual payment screenshots and verify transactions.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting Verification</p>
+                    <p className="text-xl font-black text-blue-600">{pendingRepayments.length}</p>
+                  </div>
+                  <button onClick={fetchPendingRepayments} className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all">
+                    <RefreshCcw size={20} className="text-slate-600" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8">
+                {pendingRepayments.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                    <div className="w-20 h-20 bg-white rounded-[2rem] border border-slate-200 flex items-center justify-center mb-4 shadow-sm">
+                      <Check className="text-emerald-500" size={32} />
+                    </div>
+                    <p className="font-black uppercase tracking-widest text-xs">All caught up!</p>
+                    <p className="text-sm font-medium mt-1">No pending manual repayments for verification.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pendingRepayments.map((r: any) => (
+                      <div key={r.id} className="bg-white rounded-[2.5rem] border border-slate-200 p-6 shadow-sm hover:shadow-xl transition-all group">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                            <ImageIcon size={20} />
+                          </div>
+                          <span className="text-[10px] font-black text-slate-400 tracking-widest">#{r.id}</span>
+                        </div>
+                        <h4 className="font-black text-slate-900 border-b border-slate-50 pb-3 mb-3">{r.loan.user.name}</h4>
+                        <div className="space-y-2 mb-6">
+                          <div className="flex justify-between text-xs font-bold">
+                            <span className="text-slate-400 uppercase tracking-tighter">Amount Due:</span>
+                            <span className="text-blue-600">₹{r.amount}</span>
+                          </div>
+                          <div className="flex justify-between text-xs font-bold">
+                            <span className="text-slate-400 uppercase tracking-tighter">Due Date:</span>
+                            <span>{new Date(r.due_date).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex justify-between text-xs font-bold">
+                            <span className="text-slate-400 uppercase tracking-tighter">Method:</span>
+                            <span className="text-slate-600">{r.payment_mode}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => { setSelectedRepayment(r); setShowRepaymentModal(true); }}
+                            className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                          >
+                            <Eye size={14} /> View Proof
+                          </button>
+                          <button
+                            onClick={() => handleApproveRepayment(r.id)}
+                            disabled={isActionLoading}
+                            className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50"
+                          >
+                            <Check size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* -- Modals -- */}
 
       {showPurposeModal && (
         <PurposeModal
-          onSelect={handlePurposeSelect}
           onClose={() => setShowPurposeModal(false)}
+          onSelect={(purpose) => {
+            setReplyText(purpose);
+            setShowPurposeModal(false);
+          }}
           attachmentName={attachment?.name}
         />
       )}
@@ -587,7 +622,7 @@ export default function Dashboard() {
           onApprove={handleApproveRepayment}
           onClose={() => setShowRepaymentModal(false)}
           isActionLoading={isActionLoading}
-          isAdmin={isAdmin}
+          isAdmin={currentUser?.role === 'admin'}
           getStorageUrl={getStorageUrl}
         />
       )}
@@ -618,7 +653,6 @@ export default function Dashboard() {
           onClose={() => setActiveCall(null)}
         />
       )}
-
       {/* Incoming Tickets Popup Container */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-4 pointer-events-none">
         {incomingTickets.slice(0, 3).map((ticket, idx) => (
@@ -662,7 +696,6 @@ export default function Dashboard() {
                   try {
                     const updated: any = await apiFetch(`/admin/support/assign/${ticket.id}`, { method: 'POST' });
                     setSelectedTicket(updated);
-                    // Also refresh list
                     fetchTickets();
                   } catch (e) {
                     toast.error("Failed to assign ticket");
