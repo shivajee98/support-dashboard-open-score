@@ -96,7 +96,7 @@ export default function Dashboard() {
     if (!currentUser) return;
     const pollUnassigned = async () => {
       try {
-        const res: any = await apiFetch('/admin/support/tickets/unassigned'); // Endpoint to get unassigned/new tickets
+        const res: any = await apiFetch('/admin/support/unassigned'); // Updated Route
         if (Array.isArray(res)) {
           const newTickets = res.filter((t: Ticket) => !acknowledgedTicketIds.has(t.id));
           setIncomingTickets(newTickets);
@@ -120,7 +120,7 @@ export default function Dashboard() {
           ? selectedTicket.messages[selectedTicket.messages.length - 1].id
           : 0;
 
-        const res: any = await apiFetch(`/support/tickets/${selectedTicket.id}/messages?after_id=${lastMessageId}`);
+        const res: any = await apiFetch(`/admin/support/tickets/${selectedTicket.id}/messages?after_id=${lastMessageId}`);
 
         if (res.status === 'success' && res.messages && res.messages.length > 0) {
           setSelectedTicket(prev => {
@@ -199,7 +199,7 @@ export default function Dashboard() {
 
     // Fetch fresh details for the ticket to ensure we have messages
     try {
-      const details: any = await apiFetch(`/support/tickets/${ticket.id}`);
+      const details: any = await apiFetch(`/admin/support/tickets/${ticket.id}`);
       setSelectedTicket(details);
 
       // Fetch Loan Details if applicable
@@ -266,7 +266,7 @@ export default function Dashboard() {
         if (purpose) formData.append('purpose', purpose);
       }
 
-      const res: any = await apiFetch(`/support/tickets/${selectedTicket.id}/message`, {
+      const res: any = await apiFetch(`/admin/support/tickets/${selectedTicket.id}/message`, {
         method: 'POST',
         body: formData,
       });
@@ -293,7 +293,7 @@ export default function Dashboard() {
     if (!confirm('Are you sure you want to resolve and close this ticket?')) return;
 
     try {
-      await apiFetch(`/support/tickets/${selectedTicket.id}/status`, {
+      await apiFetch(`/admin/support/tickets/${selectedTicket.id}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status: 'closed' })
       });
