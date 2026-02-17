@@ -74,7 +74,7 @@ export default function Dashboard() {
   const isActualAdmin = role === 'admin';
   const categorySlug = currentUser?.support_category?.slug || '';
 
-  const isLoanKycRole = isAdmin && (isActualAdmin || categorySlug.includes('loan') || categorySlug.includes('kyc'));
+  const isLoanKycRole = isAdmin && (isActualAdmin || categorySlug.includes('loan') || categorySlug.includes('kyc') || categorySlug.includes('transfer') || categorySlug.includes('emi'));
   const isCashbackRole = isAdmin && (isActualAdmin || categorySlug.includes('cashback'));
   const isTransferRole = isAdmin && (isActualAdmin || categorySlug.includes('transfer') || categorySlug.includes('emi'));
 
@@ -180,8 +180,9 @@ export default function Dashboard() {
 
   const fetchPendingRepayments = async () => {
     try {
-      const res: any = await apiFetch('/admin/loan-repayments/manual-verification');
-      setPendingRepayments(res || []);
+      const res: any = await apiFetch('/admin/repayments/pending');
+      // Backend returns paginated object, so we need res.data
+      setPendingRepayments(Array.isArray(res) ? res : (res.data || []));
     } catch (err) {
       toast.error('Failed to load pending repayments');
     }
