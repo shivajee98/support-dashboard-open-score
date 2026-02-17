@@ -110,6 +110,43 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [currentUser, acknowledgedTicketIds]);
 
+  // 3. Poll for messages in selected ticket
+  useEffect(() => {
+    if (!selectedTicket || selectedTicket.status === 'closed') return;
+
+    const pollMessages = async () => {
+      try {
+        const lastMessageId = selectedTicket.messages && selectedTicket.messages.length > 0
+          ? selectedTicket.messages[selectedTicket.messages.length - 1].id
+          : 0;
+
+        const res: any = await apiFetch(`/support/tickets/${selectedTicket.id}/messages?after_id=${lastMessageId}`);
+
+        if (res.status === 'success' && res.messages && res.messages.length > 0) {
+          setSelectedTicket(prev => {
+            if (!prev || prev.id !== selectedTicket.id) return prev;
+
+            // Avoid duplicates
+            const existingIds = new Set(prev.messages?.map((m: any) => m.id) || []);
+            const newMessages = res.messages.filter((m: any) => !existingIds.has(m.id));
+
+            if (newMessages.length === 0) return prev;
+
+            return {
+              ...prev,
+              messages: [...(prev.messages || []), ...newMessages]
+            };
+          });
+        }
+      } catch (err) {
+        console.error('Message polling error', err);
+      }
+    };
+
+    const interval = setInterval(pollMessages, 3000); // Poll every 3s
+    return () => clearInterval(interval);
+  }, [selectedTicket?.id, selectedTicket?.status, selectedTicket?.messages?.length]);
+
   // -- Data Fetching --
 
   const fetchCurrentUser = async () => {
@@ -152,9 +189,9 @@ export default function Dashboard() {
 
   // -- Actions --
 
-  const selectTicket = async (ticket: Ticket) => {
+  const selectTicket = async (ticket: Ticket, forceRefresh = false) => {
     // If we're clicking the same ticket, do nothing
-    if (selectedTicket?.id === ticket.id) return;
+    if (!forceRefresh && selectedTicket?.id === ticket.id) return;
 
     setSelectedTicket(ticket);
     setViewingUser(null); // Reset viewing user profile when switching tickets
@@ -169,10 +206,22 @@ export default function Dashboard() {
         try {
           const userFullDetails: any = await apiFetch(`/admin/users/${details.user_id}/full-details`);
 
-          if (userFullDetails.loans && userFullDetails.loans.ongoing && userFullDetails.loans.ongoing.length > 0) {
-            const activeLoan = userFullDetails.loans.ongoing[0]; // Assuming the first ongoing loan is the primary one
-            const repayments = userFullDetails.loans.pending_emis || []; // Using the structure we saw in AdminController
-            setLoanDetails({ loan: activeLoan, repayments });
+          if (userFullDetails.loans && (userFullDetails.loans.ongoing || userFullDetails.loans.past)) {
+            const allLoans = [...(userFullDetails.loans.ongoing || []), ...(userFullDetails.loans.past || [])];
+
+            // Prioritize loan matching target_id if it exists
+            let activeLoan = null;
+            if (details.target_id) {
+              activeLoan = allLoans.find((l: any) => l.id === details.target_id);
+            }
+
+            // Fallback to the first ongoing loan
+            if (!activeLoan && userFullDetails.loans.ongoing && userFullDetails.loans.ongoing.length > 0) {
+              activeLoan = userFullDetails.loans.ongoing[0];
+            }
+
+            const repayments = activeLoan ? (userFullDetails.loans.pending_emis?.filter((e: any) => e.loan_id === activeLoan.id) || []) : [];
+            setLoanDetails(activeLoan ? { loan: activeLoan, repayments } : null);
           } else {
             setLoanDetails(null);
           }
@@ -309,23 +358,62 @@ export default function Dashboard() {
   };
 
   // -- Loan Actions --
+  const sendChatMessage = async (ticketId: number, text: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('message', text);
+      const res: any = await apiFetch(`/support/tickets/${ticketId}/message`, {
+        method: 'POST',
+        body: formData,
+      });
+      // Refresh ticket details if it's the current one to show the message immediately
+      if (selectedTicket?.id === ticketId) {
+        const newMessage = res.message || res;
+        setSelectedTicket(prev => prev ? {
+          ...prev,
+          messages: [...(prev.messages || []), newMessage]
+        } : null);
+      }
+    } catch (err) {
+      console.error("Failed to send system message", err);
+    }
+  };
+
   const handleProceedLoan = async (id: number) => {
+    if (!confirm("Are you sure you want to proceed with this application?")) return;
+    setIsActionLoading(true);
     try {
       await apiFetch(`/admin/loans/${id}/proceed`, { method: 'POST' });
       toast.success("Loan proceeded");
-      // Refresh loan details
-      if (selectedTicket) selectTicket(selectedTicket);
+
+      if (selectedTicket) {
+        await sendChatMessage(selectedTicket.id, "Your application has been proceeded to the next stage. We are now preparing your KYC verification.");
+        // Refresh details
+        selectTicket(selectedTicket);
+      }
     } catch (e) {
       toast.error("Failed to proceed loan");
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
   const handleSendKyc = async (id: number) => {
+    setIsActionLoading(true);
     try {
-      await apiFetch(`/admin/loans/${id}/send-kyc`, { method: 'POST' });
+      const res: any = await apiFetch(`/admin/loans/${id}/send-kyc`, { method: 'POST' });
       toast.success("KYC Link sent");
+
+      if (selectedTicket && res.kyc_link) {
+        await sendChatMessage(selectedTicket.id, `I have sent the KYC link to your profile. Please complete it so we can proceed with your loan. Link: ${res.kyc_link}`);
+      }
+
+      // Refresh data
+      if (selectedTicket) selectTicket(selectedTicket);
     } catch (e) {
       toast.error("Failed to send KYC link");
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
@@ -705,11 +793,18 @@ export default function Dashboard() {
               <button
                 onClick={async () => {
                   setAcknowledgedTicketIds(prev => new Set([...prev, ticket.id]));
-                  await selectTicket(ticket);
                   try {
+                    // Assign first to ensure we have permission/ownership
                     const updated: any = await apiFetch(`/admin/support/assign/${ticket.id}`, { method: 'POST' });
-                    setSelectedTicket(updated);
+
+                    setActiveTab('tickets');
+                    setTicketFilter('active');
+
+                    // Fetch all tickets to update the list sidebar
                     fetchTickets();
+
+                    // Select the newly assigned ticket with force refresh
+                    await selectTicket(updated, true);
                   } catch (e) {
                     toast.error("Failed to assign ticket");
                   }

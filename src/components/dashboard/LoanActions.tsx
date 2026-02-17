@@ -51,7 +51,7 @@ export default function LoanActions({
 
             <div className="grid grid-cols-1 gap-2">
                 {/* Action: Proceed Loan */}
-                {loanDetails.loan.status === 'PENDING' && (
+                {['PENDING', 'PROCEEDED'].includes(loanDetails.loan.status) && (
                     <button
                         onClick={() => handleProceedLoan(loanDetails.loan.id)}
                         disabled={isActionLoading}
@@ -68,7 +68,7 @@ export default function LoanActions({
                 {/* Action 1: Send KYC */}
                 <button
                     onClick={() => handleSendKyc(loanDetails.loan.id)}
-                    disabled={isActionLoading || !['PROCEEDED', 'KYC_SENT', 'FORM_SUBMITTED'].includes(loanDetails.loan.status)}
+                    disabled={isActionLoading || !['PENDING', 'PROCEEDED', 'KYC_SENT', 'FORM_SUBMITTED'].includes(loanDetails.loan.status)}
                     className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-all disabled:opacity-50 group"
                 >
                     <div className="flex items-center gap-2">
