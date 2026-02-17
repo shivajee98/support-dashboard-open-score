@@ -651,7 +651,6 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-white font-sans overflow-hidden text-slate-900 border-t border-slate-100">
       <Toaster position="top-center" richColors />
-      <Toaster position="top-center" richColors />
 
       {/* Sidebar Navigation */}
       <aside className="w-20 lg:w-64 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
@@ -847,7 +846,7 @@ export default function Dashboard() {
             </div>
           </div>
         ) : activeTab === 'tickets' ? (
-          <>
+          <div className="flex-1 flex overflow-hidden">
             {/* Ticket List Area */}
             <div className={`w-full md:w-80 lg:w-96 border-r border-slate-200 flex flex-col bg-white ${selectedTicket ? 'hidden md:flex' : 'flex'}`}>
               <div className="p-6 border-b border-slate-100">
@@ -961,9 +960,9 @@ export default function Dashboard() {
                                       <p className="text-lg font-black text-slate-900">₹{Number(loan.amount).toLocaleString()}</p>
                                     </div>
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${loan.status === 'ACTIVE' || loan.status === 'DISBURSED' ? 'bg-blue-100 text-blue-700' :
-                                        loan.status === 'CLOSED' ? 'bg-emerald-100 text-emerald-700' :
-                                          loan.status === 'DEFAULTED' || loan.status === 'OVERDUE' ? 'bg-rose-100 text-rose-700' :
-                                            'bg-slate-100 text-slate-500'
+                                      loan.status === 'CLOSED' ? 'bg-emerald-100 text-emerald-700' :
+                                        loan.status === 'DEFAULTED' || loan.status === 'OVERDUE' ? 'bg-rose-100 text-rose-700' :
+                                          'bg-slate-100 text-slate-500'
                                       }`}>
                                       {loan.status}
                                     </span>
@@ -1045,7 +1044,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ) : (
-                  <>
+                  <div className="flex-1 flex flex-col relative h-full">
+                    {/* Header: Ticket Subject & ID */}
                     <div className="p-4 lg:p-6 border-b border-slate-200 bg-white/80 backdrop-blur-md flex justify-between items-center shrink-0">
                       <div className="flex items-center gap-3">
                         <button onClick={() => setSelectedTicket(null)} className="md:hidden p-2 hover:bg-slate-50 rounded-lg">
@@ -1053,9 +1053,10 @@ export default function Dashboard() {
                         </button>
                         <div>
                           <h3 className="text-lg font-black truncate max-w-[200px] lg:max-w-md">{selectedTicket.subject}</h3>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CUSTOMER ID: {selectedTicket.user.id}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ref-No: {selectedTicket.id}</p>
                         </div>
                       </div>
+
                       <div className="flex items-center gap-2">
                         {!selectedTicket.assigned_to && (
                           <button
@@ -1079,6 +1080,37 @@ export default function Dashboard() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Loan Breakdown Bar (Conditional) */}
+                    {(currentUser?.categoryName?.toLowerCase().includes('transfer') || currentUser?.categoryName?.toLowerCase().includes('unable')) && loanDetails && loanDetails.loan && (
+                      <div className="bg-indigo-50 border-b border-indigo-100 p-4 flex items-center justify-between shrink-0">
+                        <div>
+                          <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-0.5">Active Loan Breakdown</p>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-lg font-black text-indigo-900">₹{Number(loanDetails.loan.amount).toLocaleString()}</span>
+                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded cursor-default">{loanDetails.loan.status}</span>
+                          </div>
+                          <div className="flex gap-4 mt-1">
+                            <div>
+                              <span className="text-[9px] font-bold text-indigo-400 uppercase">Paid</span>
+                              <p className="text-xs font-bold text-indigo-700">₹{Number(loanDetails.loan.paid_amount || 0).toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-bold text-indigo-400 uppercase">EMI</span>
+                              <p className="text-xs font-bold text-indigo-700">₹{loanDetails.repayments?.[0]?.amount ? Number(loanDetails.repayments[0].amount).toLocaleString() : 'N/A'}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <button
+                            onClick={() => handleViewLoanDetails(loanDetails.loan.id)}
+                            className="px-3 py-1.5 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all"
+                          >
+                            View Full
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 custom-scrollbar bg-slate-50/50">
                       {selectedTicket.messages?.map((m: any, idx: number) => (
@@ -1105,7 +1137,42 @@ export default function Dashboard() {
                       ))}
                     </div>
 
+                    {/* Agent Control Panel & Input Area */}
                     <div className="p-4 lg:p-6 bg-white border-t border-slate-200 shrink-0">
+                      {/* Manual Agent Actions (Recharge / Fee) */}
+                      {['SUPPORT', 'ADMIN', 'SUPPORT_AGENT'].includes(currentUser?.role) && (
+                        <div className="mb-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Agent Actions</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => {
+                                const amount = prompt('Enter Wallet Recharge Amount (₹):');
+                                if (amount && !isNaN(Number(amount))) {
+                                  handleProcessTicketAction(selectedTicket.id, 'recharge', Number(amount));
+                                }
+                              }}
+                              className="p-3 bg-white border border-emerald-200 rounded-xl hover:bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                            >
+                              <IndianRupee size={14} />
+                              Wallet Recharge
+                            </button>
+                            <button
+                              onClick={() => {
+                                const amount = prompt('Enter Fee & Charges Amount (₹):');
+                                if (amount && !isNaN(Number(amount))) {
+                                  handleProcessTicketAction(selectedTicket.id, 'platform_fee', Number(amount));
+                                }
+                              }}
+                              className="p-3 bg-white border border-rose-200 rounded-xl hover:bg-rose-50 text-rose-700 font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                            >
+                              <ShieldAlert size={14} />
+                              Fee & Charges
+                            </button>
+                          </div>
+                          <p className="text-[9px] text-slate-400 mt-2 text-center">Actions require Admin Approval. Fees will be deducted from user.</p>
+                        </div>
+                      )}
+
                       <form onSubmit={handleSendMessage} className="flex gap-4 items-end">
                         <div className="flex-1 flex flex-col gap-2">
                           {attachment && (
@@ -1146,7 +1213,7 @@ export default function Dashboard() {
                         </button>
                       </form>
                     </div>
-                  </>
+                  </div>
                 )
               ) : (
                 <div className="flex-1 flex items-center justify-center p-12 text-center text-slate-400 animate-in fade-in duration-500">
@@ -1386,30 +1453,29 @@ export default function Dashboard() {
                         </button>
                       )}
                     </div>
-                  </div>
-                </div>
 
-                <div className="mt-8 p-6 bg-slate-900 rounded-[2.5rem] text-white shadow-2xl shadow-slate-900/40 relative overflow-hidden">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-3xl"></div>
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-3">
-                      <ShieldAlert size={18} className="text-rose-400" />
-                      <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60">Control Panel</h4>
+                    <div className="mt-8 p-6 bg-slate-900 rounded-[2.5rem] text-white shadow-2xl shadow-slate-900/40 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-3xl"></div>
+                      <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-3">
+                          <ShieldAlert size={18} className="text-rose-400" />
+                          <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60">Control Panel</h4>
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-400 mb-6 leading-relaxed">Resolve this query once verification is complete. Closed tickets go to archives.</p>
+                        <button
+                          onClick={handleResolveTicket}
+                          className="w-full py-4 bg-rose-600 text-white rounded-2xl text-[10px] font-black shadow-lg hover:bg-rose-700 active:scale-95 transition-all uppercase tracking-widest"
+                        >
+                          Complete & Archive
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-[11px] font-bold text-slate-400 mb-6 leading-relaxed">Resolve this query once verification is complete. Closed tickets go to archives.</p>
-                    <button
-                      onClick={handleResolveTicket}
-                      className="w-full py-4 bg-rose-600 text-white rounded-2xl text-[10px] font-black shadow-lg hover:bg-rose-700 active:scale-95 transition-all uppercase tracking-widest"
-                    >
-                      Complete & Archive
-                    </button>
                   </div>
                 </div>
               </div>
             )}
-          </>
+          </div>
         ) : (
-          /* EMI Approvals Tab */
           <div className="flex-1 flex flex-col bg-slate-50/30 overflow-hidden animate-in fade-in duration-300">
             <div className="p-8 border-b border-slate-200 bg-white flex justify-between items-center">
               <div>
@@ -1484,338 +1550,345 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-      </div>
 
-      {/* Manual Repayment / Proof Modal */}
-      {showRepaymentModal && selectedRepayment && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[60] flex items-center justify-center p-4 lg:p-12 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3rem] w-full max-w-5xl shadow-2xl flex flex-col lg:flex-row overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
-            {/* Image Section */}
-            <div className="lg:w-2/3 bg-slate-100 flex items-center justify-center relative overflow-hidden p-6 border-b lg:border-b-0 lg:border-r border-slate-200">
-              {selectedRepayment.proof_image ? (
-                <img
-                  src={getStorageUrl(selectedRepayment.proof_image)}
-                  alt="Payment Proof"
-                  className="max-w-full max-h-full object-contain rounded-2xl shadow-xl border-4 border-white"
-                />
-              ) : (
-                <div className="text-center text-slate-400">
-                  <ImageIcon size={64} className="mx-auto mb-4 opacity-10" />
-                  <p className="font-black uppercase tracking-widest text-sm">No Image Attached</p>
-                </div>
-              )}
-            </div>
-
-            {/* Details Section */}
-            <div className="lg:w-1/3 flex flex-col p-8 lg:p-10 shrink-0">
-              <div className="flex justify-between items-start mb-8">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900">Verification</h3>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Pending Approval</p>
-                </div>
-                <button onClick={() => setShowRepaymentModal(false)} className="w-12 h-12 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-all">
-                  <LogOut className="rotate-90 text-slate-600" size={20} />
-                </button>
+        {/* Manual Repayment / Proof Modal */}
+        {showRepaymentModal && selectedRepayment && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[60] flex items-center justify-center p-4 lg:p-12 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[3rem] w-full max-w-5xl shadow-2xl flex flex-col lg:flex-row overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
+              {/* Image Section */}
+              <div className="lg:w-2/3 bg-slate-100 flex items-center justify-center relative overflow-hidden p-6 border-b lg:border-b-0 lg:border-r border-slate-200">
+                {selectedRepayment.proof_image ? (
+                  <img
+                    src={getStorageUrl(selectedRepayment.proof_image)}
+                    alt="Payment Proof"
+                    className="max-w-full max-h-full object-contain rounded-2xl shadow-xl border-4 border-white"
+                  />
+                ) : (
+                  <div className="text-center text-slate-400">
+                    <ImageIcon size={64} className="mx-auto mb-4 opacity-10" />
+                    <p className="font-black uppercase tracking-widest text-sm">No Image Attached</p>
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-6 flex-1">
+              {/* Details Section */}
+              <div className="lg:w-1/3 flex flex-col p-8 lg:p-10 shrink-0">
+                <div className="flex justify-between items-start mb-8">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900">Verification</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Pending Approval</p>
+                  </div>
+                  <button onClick={() => setShowRepaymentModal(false)} className="w-12 h-12 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-all">
+                    <LogOut className="rotate-90 text-slate-600" size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-6 flex-1">
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Customer</p>
+                      <p className="font-black text-slate-900">{selectedRepayment.loan?.user?.name || 'Unknown'}</p>
+                      <p className="text-[10px] font-mono font-bold text-slate-500">{selectedRepayment.loan?.user?.mobile_number}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount to Verify</span>
+                        <span className="text-xl font-black text-blue-600">₹{selectedRepayment.amount}</span>
+                      </div>
+                      {selectedRepayment.transaction_id && (
+                        <div className="pt-2 border-t border-slate-200">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Transaction ID</span>
+                          <span className="text-xs font-mono font-bold text-slate-700 bg-slate-200 px-2 py-1 rounded-md break-all">{selectedRepayment.transaction_id}</span>
+                        </div>
+                      )}
+                      {selectedRepayment.status === 'AGENT_APPROVED' && (
+                        <div className="pt-2 border-t border-slate-200 flex items-center gap-2 text-emerald-600">
+                          <BadgeCheck size={14} />
+                          <span className="text-[10px] font-black uppercase tracking-widest">Agent Approved</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Due Date</p>
+                        <p className="text-xs font-black text-slate-700">{new Date(selectedRepayment.due_date).toLocaleDateString()}</p>
+                      </div>
+                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Frequency</p>
+                        <p className="text-xs font-black text-slate-700 capitalize">{selectedRepayment.loan?.payout_frequency || 'Monthly'}</p>
+                      </div>
+                    </div>
+
+                    {selectedRepayment.notes && ( 
+                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                        <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1">User Notes</p>
+                        <p className="text-xs font-medium text-amber-800">{selectedRepayment.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-8 space-y-3 mt-auto">
+                  <button
+                    onClick={() => handleApproveRepayment(selectedRepayment.id)}
+                    disabled={isActionLoading}
+                    className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+                  >
+                    <Check size={16} /> {isActionLoading ? 'Processing...' : (isAdmin ? 'Final Admin Approval' : 'Agent Verification')}
+                  </button>
+                  <button
+                    onClick={() => setShowRepaymentModal(false)}
+                    className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl text-[10px] font-black hover:bg-slate-200 active:scale-95 transition-all uppercase tracking-widest"
+                  >
+                    Cancel Review
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+        } {/* Loan Detail Modal */}
+        {
+          showLoanDetailModal && selectedLoanDetail && (
+            <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[60] flex items-center justify-center p-4 lg:p-12 animate-in fade-in duration-300">
+              <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl p-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Loan Details</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">ID #{selectedLoanDetail.loan?.id}</p>
+                  </div>
+                  <button onClick={() => setShowLoanDetailModal(false)} className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-all">
+                    <X size={18} className="text-slate-600" />
+                  </button>
+                </div>
+
                 <div className="space-y-4">
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Customer</p>
-                    <p className="font-black text-slate-900">{selectedRepayment.loan?.user?.name || 'Unknown'}</p>
-                    <p className="text-[10px] font-mono font-bold text-slate-500">{selectedRepayment.loan?.user?.mobile_number}</p>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount to Verify</span>
-                      <span className="text-xl font-black text-blue-600">₹{selectedRepayment.amount}</span>
-                    </div>
-                    {selectedRepayment.transaction_id && (
-                      <div className="pt-2 border-t border-slate-200">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Transaction ID</span>
-                        <span className="text-xs font-mono font-bold text-slate-700 bg-slate-200 px-2 py-1 rounded-md break-all">{selectedRepayment.transaction_id}</span>
-                      </div>
-                    )}
-                    {selectedRepayment.status === 'AGENT_APPROVED' && (
-                      <div className="pt-2 border-t border-slate-200 flex items-center gap-2 text-emerald-600">
-                        <BadgeCheck size={14} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Agent Approved</span>
-                      </div>
-                    )}
+                    <p className="font-black text-slate-900">{selectedLoanDetail.loan?.user?.name || 'Unknown'}</p>
+                    <p className="text-[10px] font-mono font-bold text-slate-500">{selectedLoanDetail.loan?.user?.mobile_number}</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Due Date</p>
-                      <p className="text-xs font-black text-slate-700">{new Date(selectedRepayment.due_date).toLocaleDateString()}</p>
-                    </div>
-                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Frequency</p>
-                      <p className="text-xs font-black text-slate-700 capitalize">{selectedRepayment.loan?.payout_frequency || 'Monthly'}</p>
+                  <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Loan Info</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span className="text-blue-400">Amount:</span>
+                        <span className="text-blue-700 text-lg font-black">₹{Number(selectedLoanDetail.loan?.amount || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-bold">
+                        <span className="text-blue-400">Plan:</span>
+                        <span className="text-blue-700">{selectedLoanDetail.loan?.plan?.name || 'General'}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-bold">
+                        <span className="text-blue-400">Status:</span>
+                        <span className="text-blue-700 uppercase">{selectedLoanDetail.loan?.status}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-bold">
+                        <span className="text-blue-400">Applied:</span>
+                        <span className="text-blue-700">{selectedLoanDetail.loan?.created_at ? new Date(selectedLoanDetail.loan.created_at).toLocaleString() : 'N/A'}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {selectedRepayment.notes && (
-                    <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
-                      <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1">User Notes</p>
-                      <p className="text-xs font-medium text-amber-800">{selectedRepayment.notes}</p>
+                  {selectedLoanDetail.loan?.calculations && (
+                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                      <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Calculations</p>
+                      <div className="space-y-1">
+                        {selectedLoanDetail.loan?.calculations && typeof selectedLoanDetail.loan.calculations === 'object' && Object.entries(selectedLoanDetail.loan.calculations).map(([key, val]: [string, any]) => (
+                          typeof val !== 'object' && (
+                            <div key={key} className="flex justify-between text-[10px] font-bold">
+                              <span className="text-emerald-500 uppercase">{key.replace(/_/g, ' ')}:</span>
+                              <span className="text-emerald-800">{typeof val === 'number' ? `₹${val.toLocaleString()}` : String(val)}</span>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedLoanDetail.loan?.form_data && Object.keys(selectedLoanDetail.loan.form_data).length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">KYC Documents & Info</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {selectedLoanDetail.loan?.form_data && typeof selectedLoanDetail.loan.form_data === 'object' && Object.entries(selectedLoanDetail.loan.form_data).map(([key, val]: [string, any]) => {
+                          const isImgObj = val && typeof val === 'object' && val.url;
+                          const isImgStr = typeof val === 'string' && (val.match(/\.(jpg|jpeg|png|webp|gif|svg|avif)$/i) || val.includes('storage/'));
+                          const isImage = isImgObj || isImgStr;
+                          const imageUrl = isImgObj ? val.url : val;
+
+                          const isUrl = typeof val === 'string' && val.startsWith('http') && !isImage;
+
+                          if (isImage) {
+                            return (
+                              <div key={key} className="col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{key.replace(/_/g, ' ')}</p>
+                                <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="block relative group aspect-video overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+                                  <img src={imageUrl} alt={key} className="w-full h-full object-contain transition-transform group-hover:scale-105" />
+                                  <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors flex items-center justify-center">
+                                    <ExternalLink size={20} className="text-white opacity-0 group-hover:opacity-100 drop-shadow-md" />
+                                  </div>
+                                </a>
+                                {val.geo && (
+                                  <div className="flex gap-2 mt-2 text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                    <span>Lat: {val.geo.lat?.toFixed(4)}</span>
+                                    <span>Lng: {val.geo.lng?.toFixed(4)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          if (isUrl) {
+                            return (
+                              <div key={key} className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex flex-col justify-center">
+                                <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">{key.replace(/_/g, ' ')}</p>
+                                <a href={val} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-600 hover:underline flex items-center gap-1">
+                                  Open Link <ExternalLink size={10} />
+                                </a>
+                              </div>
+                            );
+                          }
+
+                          if (['consent', 'auto_approved', 'auto_approved_at'].includes(key)) return null;
+
+                          return (
+                            <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{key.replace(/_/g, ' ')}</p>
+                              <p className="text-[10px] font-black text-slate-700 break-words">{String(val)}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
 
-              <div className="pt-8 space-y-3 mt-auto">
-                <button
-                  onClick={() => handleApproveRepayment(selectedRepayment.id)}
-                  disabled={isActionLoading}
-                  className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
-                >
-                  <Check size={16} /> {isActionLoading ? 'Processing...' : (isAdmin ? 'Final Admin Approval' : 'Agent Verification')}
-                </button>
-                <button
-                  onClick={() => setShowRepaymentModal(false)}
-                  className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl text-[10px] font-black hover:bg-slate-200 active:scale-95 transition-all uppercase tracking-widest"
-                >
-                  Cancel Review
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}{/* Loan Detail Modal */}
-      {showLoanDetailModal && selectedLoanDetail && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[60] flex items-center justify-center p-4 lg:p-12 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl p-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-xl font-black text-slate-900">Loan Details</h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">ID #{selectedLoanDetail.loan?.id}</p>
-              </div>
-              <button onClick={() => setShowLoanDetailModal(false)} className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-all">
-                <X size={18} className="text-slate-600" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Customer</p>
-                <p className="font-black text-slate-900">{selectedLoanDetail.loan?.user?.name || 'Unknown'}</p>
-                <p className="text-[10px] font-mono font-bold text-slate-500">{selectedLoanDetail.loan?.user?.mobile_number}</p>
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Loan Info</p>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-blue-400">Amount:</span>
-                    <span className="text-blue-700 text-lg font-black">₹{Number(selectedLoanDetail.loan?.amount || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-blue-400">Plan:</span>
-                    <span className="text-blue-700">{selectedLoanDetail.loan?.plan?.name || 'General'}</span>
-                  </div>
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-blue-400">Status:</span>
-                    <span className="text-blue-700 uppercase">{selectedLoanDetail.loan?.status}</span>
-                  </div>
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-blue-400">Applied:</span>
-                    <span className="text-blue-700">{selectedLoanDetail.loan?.created_at ? new Date(selectedLoanDetail.loan.created_at).toLocaleString() : 'N/A'}</span>
-                  </div>
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowLoanDetailModal(false)}
+                    className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
+            </div>
+          )
+        }
 
-              {selectedLoanDetail.loan?.calculations && (
-                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Calculations</p>
-                  <div className="space-y-1">
-                    {selectedLoanDetail.loan?.calculations && typeof selectedLoanDetail.loan.calculations === 'object' && Object.entries(selectedLoanDetail.loan.calculations).map(([key, val]: [string, any]) => (
-                      typeof val !== 'object' && (
-                        <div key={key} className="flex justify-between text-[10px] font-bold">
-                          <span className="text-emerald-500 uppercase">{key.replace(/_/g, ' ')}:</span>
-                          <span className="text-emerald-800">{typeof val === 'number' ? `₹${val.toLocaleString()}` : String(val)}</span>
-                        </div>
-                      )
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedLoanDetail.loan?.form_data && Object.keys(selectedLoanDetail.loan.form_data).length > 0 && (
+        {/* Cashback Modal */}
+        {
+          showCashbackModal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+              <div className="bg-white rounded-[2.5rem] w-full max-w-sm shadow-2xl p-8 animate-in zoom-in-95 duration-200">
+                <h3 className="text-xl font-black mb-6">Credit Award</h3>
                 <div className="space-y-4">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">KYC Documents & Info</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedLoanDetail.loan?.form_data && typeof selectedLoanDetail.loan.form_data === 'object' && Object.entries(selectedLoanDetail.loan.form_data).map(([key, val]: [string, any]) => {
-                      const isImgObj = val && typeof val === 'object' && val.url;
-                      const isImgStr = typeof val === 'string' && (val.match(/\.(jpg|jpeg|png|webp|gif|svg|avif)$/i) || val.includes('storage/'));
-                      const isImage = isImgObj || isImgStr;
-                      const imageUrl = isImgObj ? val.url : val;
-
-                      const isUrl = typeof val === 'string' && val.startsWith('http') && !isImage;
-
-                      if (isImage) {
-                        return (
-                          <div key={key} className="col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{key.replace(/_/g, ' ')}</p>
-                            <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="block relative group aspect-video overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
-                              <img src={imageUrl} alt={key} className="w-full h-full object-contain transition-transform group-hover:scale-105" />
-                              <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors flex items-center justify-center">
-                                <ExternalLink size={20} className="text-white opacity-0 group-hover:opacity-100 drop-shadow-md" />
-                              </div>
-                            </a>
-                            {val.geo && (
-                              <div className="flex gap-2 mt-2 text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                                <span>Lat: {val.geo.lat?.toFixed(4)}</span>
-                                <span>Lng: {val.geo.lng?.toFixed(4)}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-
-                      if (isUrl) {
-                        return (
-                          <div key={key} className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex flex-col justify-center">
-                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">{key.replace(/_/g, ' ')}</p>
-                            <a href={val} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-600 hover:underline flex items-center gap-1">
-                              Open Link <ExternalLink size={10} />
-                            </a>
-                          </div>
-                        );
-                      }
-
-                      if (['consent', 'auto_approved', 'auto_approved_at'].includes(key)) return null;
-
-                      return (
-                        <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{key.replace(/_/g, ' ')}</p>
-                          <p className="text-[10px] font-black text-slate-700 break-words">{String(val)}</p>
-                        </div>
-                      );
-                    })}
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Benefit Amount</label>
+                    <input type="number" value={cashbackAmount} onChange={e => setCashbackAmount(e.target.value)} className="w-full p-4 bg-slate-100 rounded-2xl outline-none font-black text-blue-600 text-lg" placeholder="0.00" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Internal Note</label>
+                    <textarea value={cashbackReason} onChange={e => setCashbackReason(e.target.value)} className="w-full p-4 bg-slate-100 rounded-2xl outline-none text-sm min-h-[100px] font-medium" />
                   </div>
                 </div>
-              )}
-            </div>
-
-            <div className="mt-6">
-              <button
-                onClick={() => setShowLoanDetailModal(false)}
-                className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cashback Modal */}
-      {showCashbackModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm shadow-2xl p-8 animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-black mb-6">Credit Award</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Benefit Amount</label>
-                <input type="number" value={cashbackAmount} onChange={e => setCashbackAmount(e.target.value)} className="w-full p-4 bg-slate-100 rounded-2xl outline-none font-black text-blue-600 text-lg" placeholder="0.00" />
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Internal Note</label>
-                <textarea value={cashbackReason} onChange={e => setCashbackReason(e.target.value)} className="w-full p-4 bg-slate-100 rounded-2xl outline-none text-sm min-h-[100px] font-medium" />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-8">
-              <button onClick={() => setShowCashbackModal(false)} className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Cancel</button>
-              <button onClick={handleAddCashback} disabled={isProcessingCashback || !cashbackAmount} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-blue-600/20 uppercase tracking-widest">
-                {isProcessingCashback ? <Loader2 className="animate-spin mx-auto" size={16} /> : 'Approve Credit'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Call Interface Modal */}
-      {activeCall && (
-        <CallInterface
-          partnerId={activeCall.userId}
-          partnerName={activeCall.name}
-          authToken={localStorage.getItem('token') || ''}
-          agentId={currentUser?.id}
-          onClose={() => setActiveCall(null)}
-        />
-      )}
-
-      {/* Incoming Tickets Popup Container */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-4 pointer-events-none">
-        {incomingTickets.slice(0, 3).map((ticket, idx) => (
-          <div
-            key={ticket.id}
-            className="w-80 bg-white border border-slate-200 rounded-[2rem] shadow-2xl p-6 pointer-events-auto animate-in slide-in-from-right duration-500"
-            style={{ animationDelay: `${idx * 150}ms` }}
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-black">
-                  <ShieldAlert size={20} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">New Request</h4>
-                  <p className="text-sm font-black text-slate-900">Ticket #{ticket.id}</p>
+                <div className="flex gap-3 mt-8">
+                  <button onClick={() => setShowCashbackModal(false)} className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Cancel</button>
+                  <button onClick={handleAddCashback} disabled={isProcessingCashback || !cashbackAmount} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-blue-600/20 uppercase tracking-widest">
+                    {isProcessingCashback ? <Loader2 className="animate-spin mx-auto" size={16} /> : 'Approve Credit'}
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => setAcknowledgedTicketIds(prev => new Set([...prev, ticket.id]))}
-                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400"
-              >
-                <X size={16} />
-              </button>
             </div>
+          )
+        }
+        {/* Call Interface Modal */}
+        {
+          activeCall && (
+            <CallInterface
+              partnerId={activeCall.userId}
+              partnerName={activeCall.name}
+              authToken={localStorage.getItem('token') || ''}
+              agentId={currentUser?.id}
+              onClose={() => setActiveCall(null)}
+            />
+          )
+        }
 
-            <div className="mb-6">
-              <h5 className="text-sm font-bold text-slate-800 mb-1">{ticket.subject}</h5>
-              <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
-                <User size={10} /> {ticket.user?.name}
-                <span className="mx-1">•</span>
-                {ticket.issue_type.replace(/-/g, ' ')}
-              </p>
-            </div>
+        {/* Incoming Tickets Popup Container */}
+        <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-4 pointer-events-none">
+          {incomingTickets.slice(0, 3).map((ticket, idx) => (
+            <div
+              key={ticket.id}
+              className="w-80 bg-white border border-slate-200 rounded-[2rem] shadow-2xl p-6 pointer-events-auto animate-in slide-in-from-right duration-500"
+              style={{ animationDelay: `${idx * 150}ms` }}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-black">
+                    <ShieldAlert size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">New Request</h4>
+                    <p className="text-sm font-black text-slate-900">Ticket #{ticket.id}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAcknowledgedTicketIds(prev => new Set([...prev, ticket.id]))}
+                  className="p-1 hover:bg-slate-100 rounded-lg text-slate-400"
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={async () => {
-                  setAcknowledgedTicketIds(prev => new Set([...prev, ticket.id]));
-                  await selectTicket(ticket);
-                  try {
-                    const updated: any = await apiFetch(`/admin/support/assign/${ticket.id}`, { method: 'POST' });
-                    setSelectedTicket(updated);
-                    toast.success('Ticket claimed successfully');
-                    fetchTickets();
-                  } catch (e: any) {
-                    toast.error(e.message || 'Already claimed by another agent');
-                  }
-                }}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
-              >
-                Claim Now
-              </button>
-              <button
-                onClick={() => setAcknowledgedTicketIds(prev => new Set([...prev, ticket.id]))}
-                className="px-4 py-3 bg-slate-100 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95"
-              >
-                Later
-              </button>
+              <div className="mb-6">
+                <h5 className="text-sm font-bold text-slate-800 mb-1">{ticket.subject}</h5>
+                <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                  <User size={10} /> {ticket.user?.name}
+                  <span className="mx-1">•</span>
+                  {ticket.issue_type.replace(/-/g, ' ')}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    setAcknowledgedTicketIds(prev => new Set([...prev, ticket.id]));
+                    await selectTicket(ticket);
+                    try {
+                      const updated: any = await apiFetch(`/admin/support/assign/${ticket.id}`, { method: 'POST' });
+                      setSelectedTicket(updated);
+                      toast.success('Ticket claimed successfully');
+                      fetchTickets();
+                    } catch (e: any) {
+                      toast.error(e.message || 'Already claimed by another agent');
+                    }
+                  }}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                >
+                  Claim Now
+                </button>
+                <button
+                  onClick={() => setAcknowledgedTicketIds(prev => new Set([...prev, ticket.id]))}
+                  className="px-4 py-3 bg-slate-100 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95"
+                >
+                  Later
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-        {incomingTickets.length > 3 && (
-          <div className="text-center">
-            <span className="px-4 py-1 bg-slate-900 text-white text-[9px] font-black rounded-full uppercase tracking-widest shadow-lg">
-              +{incomingTickets.length - 3} More Requests
-            </span>
-          </div>
-        )}
+          ))}
+          {incomingTickets.length > 3 && (
+            <div className="text-center">
+              <span className="px-4 py-1 bg-slate-900 text-white text-[9px] font-black rounded-full uppercase tracking-widest shadow-lg">
+                +{incomingTickets.length - 3} More Requests
+              </span>
+            </div>
+          )}
+        </div>
+
       </div>
-
     </div>
-  );
+);
 }
