@@ -77,12 +77,12 @@ export default function ChatArea({
             <div className="p-6 bg-white border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
                 <div>
                     <div className="flex items-center gap-3 mb-1">
-                        <h2 className="text-lg font-black text-slate-900 line-clamp-1">{selectedTicket.subject}</h2>
+                        <h2 className="text-lg font-black text-black line-clamp-1">{selectedTicket.subject}</h2>
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[9px] font-black uppercase tracking-widest">
                             #{selectedTicket.unique_ticket_id}
                         </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
                         <span>{selectedTicket.user?.name}</span>
                         <span className="w-1 h-1 rounded-full bg-slate-300" />
                         <span>{selectedTicket.issue_type?.replace(/_/g, ' ')}</span>
@@ -94,7 +94,7 @@ export default function ChatArea({
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-4 custom-scrollbar bg-slate-50/50">
                 {selectedTicket.messages?.map((m: any, idx: number) => (
                     <div key={idx} className={`flex ${m.is_admin_reply ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] lg:max-w-[70%] p-4 rounded-2xl shadow-sm ${m.is_admin_reply ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none'}`}>
+                        <div className={`max-w-[85%] lg:max-w-[70%] p-4 rounded-2xl shadow-sm ${m.is_admin_reply ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-black rounded-tl-none'}`}>
                             {m.attachment_url && (
                                 <div className="mb-2">
                                     <img
@@ -108,7 +108,7 @@ export default function ChatArea({
                             <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">
                                 {renderMessageWithLinks(m.message)}
                             </p>
-                            <p className={`text-[9px] mt-2 font-bold opacity-50 ${m.is_admin_reply ? 'text-blue-100' : 'text-slate-400'}`}>
+                            <p className={`text-[9px] mt-2 font-bold opacity-80 ${m.is_admin_reply ? 'text-blue-100' : 'text-slate-900'}`}>
                                 {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                         </div>
@@ -149,7 +149,7 @@ export default function ChatArea({
                                 value={replyText}
                                 onChange={(e) => setReplyText(e.target.value)}
                                 placeholder="Type your response here..."
-                                className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-black placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                             />
                         </div>
                     </div>

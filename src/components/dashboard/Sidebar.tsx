@@ -36,9 +36,9 @@ export default function Sidebar({
         <div className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
             <div className="p-6 border-b border-slate-100">
                 <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-xl font-black tracking-tight text-slate-900">Active Tickets</h1>
+                    <h1 className="text-xl font-black tracking-tight text-black">Active Tickets</h1>
                     <button onClick={onRefresh} className="p-2 hover:bg-slate-100 rounded-xl transition-all active:rotate-180">
-                        <RotateCw size={18} className="text-slate-400" />
+                        <RotateCw size={18} className="text-slate-900" />
                     </button>
                 </div>
 
@@ -48,7 +48,7 @@ export default function Sidebar({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search tickets..."
-                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-black outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-600"
                     />
                 </div>
 
@@ -91,7 +91,7 @@ export default function Sidebar({
                             <span className="px-2 py-1 rounded-lg bg-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-widest">
                                 #{ticket.unique_ticket_id}
                             </span>
-                            <span className="text-[9px] font-bold text-slate-400">
+                            <span className="text-[9px] font-bold text-slate-900">
                                 {new Date(ticket.created_at).toLocaleDateString()}
                             </span>
                         </div>
@@ -107,10 +107,10 @@ export default function Sidebar({
                                 ticket.priority === 'high' ? "bg-rose-500" :
                                     ticket.priority === 'medium' ? "bg-amber-500" : "bg-emerald-500"
                             )} />
-                            <p className="text-xs font-medium text-slate-500 truncate max-w-[150px]">{ticket.user?.name}</p>
+                            <p className="text-xs font-medium text-slate-900 truncate max-w-[150px]">{ticket.user?.name}</p>
                         </div>
                         <div className="flex gap-2">
-                            <span className="text-[9px] font-bold px-2 py-1 bg-white border border-slate-200 rounded-md text-slate-400 uppercase tracking-widest">
+                            <span className="text-[9px] font-bold px-2 py-1 bg-white border border-slate-200 rounded-md text-slate-900 uppercase tracking-widest">
                                 {ticket.issue_type?.replace(/_/g, ' ')}
                             </span>
                         </div>
